@@ -1,12 +1,7 @@
-#import tifffile as tiff
-from PIL import Image, ImageDraw
-import numpy as np 
-from tkinter import *
+from tkinter import Tk
 
-# Interface definition
-class Application:
-    def __init__(self, master=None):
-        pass
-root = Tk()
-Application(root)
-root.mainloop()
+class GUI(Tk):
+    def __init__(self):
+        super().__init__()
+        self.geometry("400x200")
+        self.title("Medical Imaging Analysis v1")

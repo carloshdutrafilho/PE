@@ -11,7 +11,7 @@ class Application:
 
         self.selected_file = None
 
-        self.load_screen = LoadScreen(self.master, app=self)  # Use self.master directly
+        self.load_screen = LoadScreen(self.master, app=self)
         self.load_screen.b_load.config(command=self.load_screen.load_image)
 
         self.main_screen = MainScreen(self.master, app=self)
@@ -20,7 +20,7 @@ class Application:
     def show_main_screen(self):
         if self.selected_file:
             self.load_screen.pack_forget()
-            self.main_screen.pack()
+            self.main_screen.pack(expand=True, fill="both")
             self.main_screen.display_image(self.selected_file)
 
 if __name__ == "__main__":

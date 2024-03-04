@@ -1,5 +1,6 @@
-from tkinter import Frame, Label, Button
+from tkinter import Frame, Label, Button, ttk
 from tkinter import filedialog
+from ttkthemes import ThemedStyle
 import os
 
 class LoadScreen(Frame):
@@ -12,7 +13,7 @@ class LoadScreen(Frame):
         self.msg["font"] = ("Verdana", "12", "bold")
         self.msg.pack()
 
-        self.b_load = Button(self, text="Load image", font=("Calibri", "10"), width=15, command=self.load_image)
+        self.b_load = ttk.Button(self, text="Load image", style="TButton", command=self.load_image)
         self.b_load.pack()
 
     def load_image(self):

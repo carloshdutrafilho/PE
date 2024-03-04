@@ -1,8 +1,9 @@
 from tkinter import Frame, Label
 
 class MainScreen(Frame):
-    def __init__(self, master=None):
+    def __init__(self, master=None, app=None):
         super().__init__(master)
+        self.app = app  
         self.pack(expand=True, fill="both")
 
         self.msg = Label(self, text="Main Screen")

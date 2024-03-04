@@ -1,24 +1,28 @@
+# main.py
+from tkinter import Tk
 from GUI import GUI
 from load_screen import LoadScreen
 from main_screen import MainScreen
-from tkinter import Tk
 
 class Application:
     def __init__(self, master=None):
         self.master = master
-        self.gui = GUI()
+        self.gui = GUI(master)
 
-        self.load_screen = LoadScreen(self.gui)
-        self.load_screen.b_load.config(command=self.show_main_screen)
+        self.selected_file = None
 
-        self.main_screen = MainScreen(self.gui)
+        self.load_screen = LoadScreen(self.master, app=self)  # Use self.master directly
+        self.load_screen.b_load.config(command=self.load_screen.load_image)
+
+        self.main_screen = MainScreen(self.master, app=self)
         self.main_screen.pack_forget()
 
     def show_main_screen(self):
-        self.load_screen.pack_forget()
-        self.main_screen.pack()
+        if self.selected_file:
+            self.load_screen.pack_forget()
+            self.main_screen.pack()
 
 if __name__ == "__main__":
     root = Tk()
-    app = Application(root)
-    root.mainloop()
+    app = Application(master=root)
+    app.master.mainloop()

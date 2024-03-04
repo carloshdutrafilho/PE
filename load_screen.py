@@ -3,8 +3,9 @@ from tkinter import filedialog
 import os
 
 class LoadScreen(Frame):
-    def __init__(self, master=None):
+    def __init__(self, master=None, app=None):
         super().__init__(master)
+        self.app = app
         self.pack(expand=True, fill="both")
 
         self.msg = Label(self, text="Create your project")
@@ -17,3 +18,8 @@ class LoadScreen(Frame):
     def load_image(self):
         current_folder = os.path.dirname(os.path.abspath(__file__))
         file_path = filedialog.askopenfilename(title="Select Image File", initialdir=current_folder, filetypes=[(".tiff files", "*.tiff")])
+
+        if file_path:
+            # If a file is selected, show the main screen
+            self.app.selected_file = file_path
+            self.app.show_main_screen()

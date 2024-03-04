@@ -21,6 +21,7 @@ class Application:
         if self.selected_file:
             self.load_screen.pack_forget()
             self.main_screen.pack()
+            self.main_screen.display_image(self.selected_file)
 
 if __name__ == "__main__":
     root = Tk()

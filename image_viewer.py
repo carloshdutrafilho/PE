@@ -9,8 +9,13 @@ class ImageViewer(tk.Frame):
 
         self.current_time = tk.DoubleVar()
         self.current_time.set(0)
+        
+        # Placeholder image
+        self.placeholder_image = Image.new("RGB", (300, 200), "lightgray")
+        self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
 
-        self.image_label = tk.Label(self)
+        # Image label with the placeholder image
+        self.image_label = tk.Label(self, image=self.placeholder_photo)
         self.image_label.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         self.time_slider = ttk.Scale(self, from_=0, to=10, variable=self.current_time, orient=tk.HORIZONTAL)

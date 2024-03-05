@@ -3,9 +3,10 @@ from ttkthemes import ThemedStyle
 import os
 
 class LoadScreen(Frame):
-    def __init__(self, master=None, app=None):
+    def __init__(self, master=None, app=None, main_screen=None):  # Add main_screen parameter
         super().__init__(master)
         self.app = app
+        self.main_screen = main_screen  # Reference to the MainScreen
         self.pack(expand=True, fill="both")
 
         # Configurando o título da janela
@@ -59,19 +60,18 @@ class LoadScreen(Frame):
         self.main_frame.grid_rowconfigure(1, weight=1)
 
     def load_image(self):
-        current_folder = os.path.dirname(os.path.abspath(__file__))
-        file_path = filedialog.askopenfilename(title="Select Image File", initialdir=current_folder, filetypes=[(".tiff files", "*.tiff")])
-
+        file_path = filedialog.askopenfilename(filetypes=[("TIFF files", "*.tiff;*.tif")])
         if file_path:
-            self.app.selected_file = file_path
-            project_name = self.entry_project_name.get()
-            self.create_project(project_name)
+            self.image_viewer.load_image(file_path)
+            self.update_recent_files(file_path)
 
     def create_project(self, project_name):
         if not self.validate_entry():
             self.quit()
 
         print(f"Creating project: {project_name}")
+        # Access MainScreen and display the image
+        self.main_screen.display_image(self.app.selected_file)
 
     def load_project(self):
         # Implemente a lógica para carregar o projeto

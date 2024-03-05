@@ -5,17 +5,50 @@ import tkinter as tk
 from tkinter import filedialog
 from image_viewer import ImageViewer
 from data_viewer import DataViewer
-from main_screen import MainScreen
+from graph_viewer import GraphViewer
+#from main_screen import MainScreen
+#from load_screen import LoadScreen
 from tkinter import Tk
 #from ttkthemes import ThemedStyle
 
-class GUI(tk.Tk):
-    def __init__(self, master=None):
+class GUI(tk.Toplevel):
+    def __init__(self, master=None, app=None, image_path=None):
         super().__init__(master)
-
-        self.title("Image Analysis Interface")
+        self.title("Main Screen")
         self.geometry("1200x800")
-        self.configure(bg='white')  # Set default background color to white
+        self.configure(bg='white')
+        
+        # Create an instance of MainScreen
+        ##self.main_screen = MainScreen(self)
+        ##self.main_screen.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        # Container for DataViewer and ImageViewer
+        main_container = tk.Frame(self)
+        main_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        
+        
+        self.msg = tk.Label(main_container, text="Main Screen")
+        self.msg["font"] = ("Verdana", "12", "bold")
+        self.msg.pack()
+        
+        
+        self.data_viewer = DataViewer(main_container)
+        self.data_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=False)
+        
+        self.image_viewer = ImageViewer(main_container)
+        self.image_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # Create an instance of GraphViewer
+        self.graph_viewer = GraphViewer(main_container)
+        self.graph_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # Create an instance of ImageViewer
+        #self.image_viewer = ImageViewer(self)
+        #self.image_viewer.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        
+        # Load the image
+        #if image_path:
+         #   self.image_viewer.load_image(image_path)
         
         # Create a menu bar
         menubar = tk.Menu(self)
@@ -57,10 +90,7 @@ class GUI(tk.Tk):
         menubar.add_cascade(label="Help", menu=help_menu)
 
         self.config(menu=menubar)
-        
-        # Create an instance of MainScreen
-        self.main_screen = MainScreen(self)
-        self.main_screen.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+    
         
         # Variable to track night mode
         self.night_mode = tk.BooleanVar()

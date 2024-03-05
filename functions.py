@@ -25,3 +25,11 @@ def moyennage_temporel(images, window):
 
 def invert_colors(images):
     return   2**16 - images
+
+def threshold_min(images,threshold):
+    images[images<threshold] = 0
+    return images
+
+def threshold_max(images,threshold):
+    images[images>threshold] = 2**16
+    return images

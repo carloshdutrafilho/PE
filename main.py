@@ -1,4 +1,5 @@
 # main.py
+import string
 from tkinter import Tk
 from GUI import GUI
 from load_screen import LoadScreen
@@ -11,32 +12,21 @@ class Application:
 
         self.selected_file = None
 
-        self.load_screen = LoadScreen(self.master, app=self)
-        self.load_screen.b_load_image.config(command=self.load_screen.load_image)
+    # def show_main_screen(self):
+    #     if self.selected_file:
+    #         self.load_screen.pack_forget()
+    #         self.gui.pack(expand=True, fill="both")
+    #         self.gui.display_image(self.selected_file)
 
-        #self.main_screen = MainScreen(self.master, app=self)
-        #self.main_screen.pack_forget()
+    #         # Atualizar o controle deslizante de tempo com o tempo máximo
+    #         max_time = 10  # Substitua pelo seu tempo máximo real
+    #         self.gui.image_viewer.update_time_slider(max_time)
 
-    def show_main_screen(self):
-        if self.selected_file:
-            self.load_screen.pack_forget()
-            self.gui.pack(expand=True, fill="both")
-            self.gui.display_image(self.selected_file)
-
-            # Update the time slider with the maximum time
-            max_time = 10  # Replace with your actual max time
-            self.gui.image_viewer.update_time_slider(max_time)
-
-            # Add code for displaying data and creating graphs
-            # (You need to integrate this with your specific implementation)
-
-            # Call methods from old_gui to integrate image_viewer and data_viewer
-            self.gui.image_viewer.show_image(self.selected_file)
-            self.gui.data_viewer.display_data()  # Add your data display code here
+    #         self.gui.image_viewer.load_image(self.selected_file)  # Add your data display code here
 
 
 if __name__ == "__main__":
     root = Tk()
     app = Application(master=root)
-    app.show_main_screen()
+    #app.show_main_screen()
     app.master.mainloop()

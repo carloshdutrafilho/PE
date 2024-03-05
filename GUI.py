@@ -9,6 +9,8 @@ from graph_viewer import GraphViewer
 #from main_screen import MainScreen
 #from load_screen import LoadScreen
 from tkinter import Tk
+
+from load_screen import LoadScreen
 #from ttkthemes import ThemedStyle
 
 class GUI(tk.Toplevel):
@@ -30,7 +32,7 @@ class GUI(tk.Toplevel):
         self.msg = tk.Label(main_container, text="Main Screen")
         self.msg["font"] = ("Verdana", "12", "bold")
         self.msg.pack()
-        
+    
         
         self.data_viewer = DataViewer(main_container)
         self.data_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=False)
@@ -41,6 +43,8 @@ class GUI(tk.Toplevel):
         # Create an instance of GraphViewer
         self.graph_viewer = GraphViewer(main_container)
         self.graph_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        self.load_screen = LoadScreen(self.master, app=self, image_viewer=self.image_viewer)
         
         # Create an instance of ImageViewer
         #self.image_viewer = ImageViewer(self)

@@ -1,12 +1,13 @@
-from tkinter import Entry, Frame, Label, Button, ttk, filedialog
+import string
+from tkinter import Entry, Frame, Label, Button, messagebox, ttk, filedialog
 from ttkthemes import ThemedStyle
 import os
 
 class LoadScreen(Frame):
-    def __init__(self, master=None, app=None, main_screen=None):  # Add main_screen parameter
+    def __init__(self, master=None, app=None, image_viewer=None):
         super().__init__(master)
         self.app = app
-        self.main_screen = main_screen  # Reference to the MainScreen
+        self.image_viewer = image_viewer
         self.pack(expand=True, fill="both")
 
         # Configurando o título da janela
@@ -32,7 +33,7 @@ class LoadScreen(Frame):
         self.entry_project_name.grid(row=1, column=1, padx=2, pady=2, columnspan=2)
 
         # Botão para Load Image (Create Project)
-        self.b_load_image = ttk.Button(self.load_frame, text="Load Image", style="TButton", command=self.load_image)
+        self.b_load_image = ttk.Button(self.load_frame, text="Load Image", style="TButton", command=self.create_project)
         self.b_load_image.grid(row=2, column=1, padx=2, pady=5)
 
         # Label informativa (Load Image / Create Project)
@@ -58,25 +59,55 @@ class LoadScreen(Frame):
         # Configurar pesos da grade para distribuir o espaço igualmente
         self.main_frame.grid_rowconfigure(0, weight=1)
         self.main_frame.grid_rowconfigure(1, weight=1)
-
+        
+        self.project_name = None
+        self.selected_file = None
+        
     def load_image(self):
         file_path = filedialog.askopenfilename(filetypes=[("TIFF files", "*.tiff;*.tif")])
         if file_path:
-            self.image_viewer.load_image(file_path)
+            self.image_viewer.load_image(self, file_path)
             self.update_recent_files(file_path)
 
-    def create_project(self, project_name):
+    def create_project(self):
         if not self.validate_entry():
-            self.quit()
+            # Se a validação falhar, exibe uma mensagem de aviso
+            messagebox.showwarning("Warning", "Please enter a project name.")
+            return
 
-        print(f"Creating project: {project_name}")
-        # Access MainScreen and display the image
-        self.main_screen.display_image(self.app.selected_file)
+        # Verificar se self.app.selected_file não é None
+        file_path = filedialog.askopenfilename(filetypes=[("TIFF files", "*.tiff;*.tif")])
+        if file_path:
+            self.selected_file = file_path
+        
+            image_directory = os.path.dirname(self.selected_file)
+            image_name = self.selected_file
+
+            # Obtenha o nome do projeto da entrada
+            project_name = self.entry_project_name.get()
+
+            # Criar a pasta do projeto se o nome do projeto for fornecido
+            project_path = os.path.join(image_directory, project_name)
+            os.makedirs(project_path, exist_ok=True)
+
+            # Criar um arquivo de identificação dentro da pasta
+            identification_file_path = os.path.join(project_path, "identification.txt")
+            with open(identification_file_path, "w") as identification_file:
+                identification_file.write(f"Project: {project_name}")
+                identification_file.write(f"\nPath-{file_path}")
+
+            print(f"Project folder created: {project_path}")
+
+        # Usar o ImageViewer para carregar a imagem
+        self.image_viewer.load_image(file_path)
+        #self.master.destroy()
+
+    def validate_entry(self):
+        if not self.entry_project_name.get():
+            print("Project name is required.")
+            return False
+        return True
 
     def load_project(self):
         # Implemente a lógica para carregar o projeto
         print("Loading project...")
-
-    def validate_entry(self):
-        if not self.entry_project_name.get():
-            self.quit()

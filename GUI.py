@@ -4,8 +4,9 @@ import datetime
 import tkinter as tk
 from tkinter import filedialog
 from image_viewer import ImageViewer
-from data_viewer import DataViewer
+from data_viewer import DataViewer  
 from graph_viewer import GraphViewer
+from file_viewer import FileViewer
 #from main_screen import MainScreen
 #from load_screen import LoadScreen
 from tkinter import Tk
@@ -20,39 +21,64 @@ class GUI(tk.Toplevel):
         self.geometry("1200x800")
         self.configure(bg='white')
         
+        # Initialize image viewer
+        self.image_viewer = ImageViewer(self)
+        
         # Create an instance of MainScreen
         ##self.main_screen = MainScreen(self)
         ##self.main_screen.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        # Container for DataViewer and ImageViewer
-        main_container = tk.Frame(self)
-        main_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        # !!!!!""
+
+        # Container for File Explorer, Image Viewer, and Data/Graph Viewers
+        ## main_container = tk.Frame(self)
+        ## main_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         
+        # Container for File Explorer, Image Viewer, and Data/Graph Viewers
+        main_container = tk.PanedWindow(self, orient=tk.HORIZONTAL, sashwidth=5, sashrelief=tk.SUNKEN)
+        main_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         
         self.msg = tk.Label(main_container, text="Main Screen")
         self.msg["font"] = ("Verdana", "12", "bold")
-        self.msg.pack()
-    
+        #self.msg.pack()
+        #main_container.add(self.msg, minsize=100)  # Set minimum size
         
-        self.data_viewer = DataViewer(main_container)
-        self.data_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=False)
+        # File Explorer
+        file_explorer_frame = FileViewer(main_container, image_viewer=self.image_viewer)
+        #file_explorer_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=False)
+        main_container.add(file_explorer_frame, minsize=100)  # Set minimum size
         
+        #Image Viewer
         self.image_viewer = ImageViewer(main_container)
-        self.image_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        # Create an instance of GraphViewer
-        self.graph_viewer = GraphViewer(main_container)
-        self.graph_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        #self.image_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        main_container.add(self.image_viewer, minsize=200)  # Set minimum size
+
+        # Data and Graph Viewers
+        data_graph_frame = tk.PanedWindow(main_container, orient=tk.VERTICAL, sashwidth=5, sashrelief=tk.SUNKEN)
+        main_container.add(data_graph_frame, minsize=100)  # Set minimum size
+
+        # Data Viewer
+        self.data_viewer = DataViewer(data_graph_frame)
+        data_graph_frame.add(self.data_viewer, minsize=100)  # Set minimum size
+
+        # Graph Viewer
+        self.graph_viewer = GraphViewer(data_graph_frame)
+        data_graph_frame.add(self.graph_viewer, minsize=100)  # Set minimum size
         
         self.load_screen = LoadScreen(self.master, app=self, image_viewer=self.image_viewer)
+
         
-        # Create an instance of ImageViewer
-        #self.image_viewer = ImageViewer(self)
-        #self.image_viewer.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        # Data and Graph Viewers
+        #data_graph_frame = tk.Frame(main_container, bg='white')
+        #data_graph_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        # Load the image
-        #if image_path:
-         #   self.image_viewer.load_image(image_path)
+        # Data Viewer
+        #self.data_viewer = DataViewer(data_graph_frame)
+        #self.data_viewer.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        
+        # Graph Viewer
+        #self.graph_viewer = GraphViewer(data_graph_frame)
+        #self.graph_viewer.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         
         # Create a menu bar
         menubar = tk.Menu(self)

@@ -7,7 +7,7 @@ class GraphViewer(tk.Frame):
         super().__init__(master)
 
         # Create a matplotlib figure and axis
-        self.figure, self.axis = Figure(figsize=(4, 4), tight_layout=True), None
+        self.figure, self.axis = Figure(figsize=(4, 2), tight_layout=True), None
         self.canvas = FigureCanvasTkAgg(self.figure, master=self)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)

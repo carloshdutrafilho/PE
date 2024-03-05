@@ -46,6 +46,7 @@ class LoadScreen(Frame):
             self.app.selected_file = file_path
             project_name = self.entry_project_name.get()
             self.create_project(project_name)
+            self.app.show_main_screen()
 
     def create_project(self, project_name):
         if not self.validate_entry():

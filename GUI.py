@@ -180,9 +180,9 @@ class GUI(tk.Tk):
 
         tkinter.messagebox.showinfo("About", about_info)
 
-def main():
-    gui = GUI()
-    gui.mainloop()
+# def main():
+#     gui = GUI()
+#     gui.mainloop()
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

@@ -3,6 +3,8 @@
 from tkinter import *
 from tkinter import Canvas, Frame, Label
 from PIL import Image, ImageTk
+from data_viewer import DataViewer
+from image_viewer import ImageViewer
 
 class MainScreen(Frame):
     def __init__(self, master=None, app=None):
@@ -14,8 +16,19 @@ class MainScreen(Frame):
         self.msg["font"] = ("Verdana", "12", "bold")
         self.msg.pack()
 
-        self.canvas = Canvas(self)
-        self.canvas.pack(expand=True, fill="both")
+        # Container for DataViewer and ImageViewer
+        main_container = Frame(self)
+        main_container.pack(side=TOP, fill=BOTH, expand=True)
+
+        self.data_viewer = DataViewer(main_container)
+        self.data_viewer.pack(side=LEFT, fill=BOTH, expand=False)
+
+        self.image_viewer = ImageViewer(main_container)
+        self.image_viewer.pack(side=LEFT, fill=BOTH, expand=True)
+
+        # GraphFrame (You may customize or add additional containers as needed)
+        self.graph_frame = Frame(self)  
+        self.graph_frame.pack(side=TOP, fill=BOTH, expand=True)
 
     def display_image(self, image_path):
         try:

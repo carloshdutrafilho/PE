@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import filedialog
 from image_viewer import ImageViewer
 from data_viewer import DataViewer
+from main_screen import MainScreen
 from tkinter import Tk
 #from ttkthemes import ThemedStyle
 
@@ -57,19 +58,9 @@ class GUI(tk.Tk):
 
         self.config(menu=menubar)
         
-        # Container for DataViewer, ImageViewer, and GraphFrame
-        main_container = tk.Frame(self)
-        main_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-        self.data_viewer = DataViewer(main_container)
-        self.data_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=False)
-
-        self.image_viewer = ImageViewer(main_container)
-        self.image_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        self.graph_frame = tk.Frame(main_container)  # Frame for the graph
-        self.graph_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
+        # Create an instance of MainScreen
+        self.main_screen = MainScreen(self)
+        self.main_screen.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         
         # Variable to track night mode
         self.night_mode = tk.BooleanVar()

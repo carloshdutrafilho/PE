@@ -12,7 +12,7 @@ class Application:
         self.selected_file = None
 
         self.load_screen = LoadScreen(self.master, app=self)
-        self.load_screen.b_load.config(command=self.load_screen.load_image)
+        self.load_screen.b_load_image.config(command=self.load_screen.load_image)
 
         self.main_screen = MainScreen(self.master, app=self)
         self.main_screen.pack_forget()

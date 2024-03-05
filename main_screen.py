@@ -2,16 +2,17 @@
 
 from tkinter import *
 from tkinter import Canvas, Frame, Label
+from tkinter import ttk
 from PIL import Image, ImageTk
 from data_viewer import DataViewer
 from image_viewer import ImageViewer
 
-class MainScreen(Frame):
+class MainScreen(ttk.Frame):
     def __init__(self, master=None, app=None):
         super().__init__(master)
         self.app = app
         self.pack(expand=True, fill="both")
-
+        
         self.msg = Label(self, text="Main Screen")
         self.msg["font"] = ("Verdana", "12", "bold")
         self.msg.pack()

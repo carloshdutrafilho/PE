@@ -37,7 +37,6 @@ class ImageViewer(tk.Frame):
     def update_time_slider(self, max_time):
         self.time_slider.configure(to=max_time)
         
-        
     def get_parameters(self):
         # Get parameter values
         moyennage = self.moyennage_entry.get()

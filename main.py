@@ -2,7 +2,7 @@
 from tkinter import Tk
 from GUI import GUI
 from load_screen import LoadScreen
-from main_screen import MainScreen
+#from main_screen import MainScreen
 
 class Application:
     def __init__(self, master=None):
@@ -14,14 +14,14 @@ class Application:
         self.load_screen = LoadScreen(self.master, app=self)
         self.load_screen.b_load_image.config(command=self.load_screen.load_image)
 
-        self.main_screen = MainScreen(self.master, app=self)
-        self.main_screen.pack_forget()
+        #self.main_screen = MainScreen(self.master, app=self)
+        #self.main_screen.pack_forget()
 
     def show_main_screen(self):
         if self.selected_file:
             self.load_screen.pack_forget()
-            self.main_screen.pack(expand=True, fill="both")
-            self.main_screen.display_image(self.selected_file)
+            self.gui.pack(expand=True, fill="both")
+            self.gui.display_image(self.selected_file)
 
             # Update the time slider with the maximum time
             max_time = 10  # Replace with your actual max time
@@ -34,7 +34,9 @@ class Application:
             self.gui.image_viewer.show_image(self.selected_file)
             self.gui.data_viewer.display_data()  # Add your data display code here
 
+
 if __name__ == "__main__":
     root = Tk()
     app = Application(master=root)
+    app.show_main_screen()
     app.master.mainloop()

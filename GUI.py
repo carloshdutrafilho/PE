@@ -7,10 +7,6 @@ from image_viewer import ImageViewer
 from data_viewer import DataViewer  
 from graph_viewer import GraphViewer
 from file_viewer import FileViewer
-#from main_screen import MainScreen
-#from load_screen import LoadScreen
-from tkinter import Tk
-
 from load_screen import LoadScreen
 #from ttkthemes import ThemedStyle
 

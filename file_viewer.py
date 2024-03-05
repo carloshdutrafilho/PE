@@ -25,7 +25,7 @@ class FileViewer(tk.Frame):
 
     def load_default_directory(self):
         # Set the default directory
-        default_directory = "C:/PMD/TIFFFiles"
+        default_directory = "C:/MedicAnalysis"
 
         # Check if the default directory exists, if not, create it
         if not os.path.exists(default_directory):

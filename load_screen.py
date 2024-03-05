@@ -83,14 +83,15 @@ class LoadScreen(Frame):
             image_directory = os.path.dirname(self.selected_file)
             image_name = self.selected_file
 
-            # Obtenha o nome do projeto da entrada
             project_name = self.entry_project_name.get()
 
-            # Criar a pasta do projeto se o nome do projeto for fornecido
-            project_path = os.path.join(image_directory, project_name)
-            os.makedirs(project_path, exist_ok=True)
+            default_directory = "C:/MedicAnalysis/Projects"
+            if not os.path.exists(default_directory):
+                os.makedirs(default_directory)
+            
+            project_path = os.path.join(default_directory, project_name)
+            os.makedirs(project_path)
 
-            # Criar um arquivo de identificação dentro da pasta
             identification_file_path = os.path.join(project_path, "identification.txt")
             with open(identification_file_path, "w") as identification_file:
                 identification_file.write(f"Project: {project_name}")
@@ -98,7 +99,6 @@ class LoadScreen(Frame):
 
             print(f"Project folder created: {project_path}")
 
-        # Usar o ImageViewer para carregar a imagem
         self.image_viewer.load_image(file_path)
         #self.master.destroy()
 

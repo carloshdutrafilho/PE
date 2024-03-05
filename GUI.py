@@ -10,8 +10,8 @@ from tkinter import Tk
 #from ttkthemes import ThemedStyle
 
 class GUI(tk.Tk):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, master=None):
+        super().__init__(master)
 
         self.title("Image Analysis Interface")
         self.geometry("1200x800")

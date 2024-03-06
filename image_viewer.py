@@ -208,7 +208,6 @@ class ImageViewer(tk.Frame):
         # Apply minimum and maximum thresholds to images
         thresholded_image = np.copy(image)
         thresholded_image[image < threshold_min] = 0  # Set values below the min threshold to 0
-        thresholded_image[image > threshold_max] = 0  # Set values above the max threshold to 0
-        thresholded_image[(image >= threshold_min) & (image <= threshold_max)] = 1  # Set values within the range to 1
-
+        thresholded_image[image > threshold_max] = 1  # Set values above the max threshold to 0
+        
         return thresholded_image        

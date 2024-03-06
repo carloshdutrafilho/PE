@@ -20,7 +20,7 @@ def contrast(images, factor):
     mean_pixel_value = np.mean(images)
     
     adjusted_images = (images - mean_pixel_value) * factor + mean_pixel_value
-    adjusted_images = np.clip(adjusted_images, 0, 1).astype(np.uint16)
+    adjusted_images = np.clip(adjusted_images, 0, 1)
 
     return adjusted_images
 
@@ -41,7 +41,7 @@ def brightness(image, valeur_luminosite):
     output : 3D numpy array
         Image with adjusted brightness.
     """
-    image_lumineuse = np.clip(image + valeur_luminosite, 0, 1).astype(np.uint16)
+    image_lumineuse = np.clip(image + valeur_luminosite, 0, 1)
     
     return image_lumineuse
 

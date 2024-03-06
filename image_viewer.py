@@ -60,10 +60,15 @@ class ImageViewer(tk.Frame):
         self.threshold_max_slider = ttk.Scale(self, from_=0, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_max_slider.pack(side=tk.LEFT, padx=10, pady=10)
         
+        # Color change button
+        self.color_change_button = tk.Button(self, text="Change Color", command=self.change_color)
+        self.color_change_button.pack(side=tk.TOP, anchor=tk.NE, padx=10, pady=10)
+        
                 
         # Keep a reference to the original image for reset functionality
         self.original_image = None
         self.image = None
+        self.color_mode = 'grayscale'  # Initial color mode
         self.reset_image()
 
     def load_image(self, image_path):
@@ -82,8 +87,9 @@ class ImageViewer(tk.Frame):
     
         self.image = self.normalized_image_array.copy()  # Create a copy for editing
         self.original_photo = ImageTk.PhotoImage(self.original_image)
-        self.axis.imshow(self.image, cmap='gray')
-        self.canvas.draw_idle()
+        #self.axis.imshow(self.image, cmap='gray')
+        #self.canvas.draw_idle()
+        self.update_displayed_image()
 
     def update_time_slider(self, max_time):
         self.time_slider.configure(to=max_time)
@@ -211,4 +217,19 @@ class ImageViewer(tk.Frame):
         thresholded_image[image > threshold_max] = 1  # Set values above the max threshold to 0
         
         return thresholded_image 
+    
+    def update_displayed_image(self):
+        # Update the displayed image using Matplotlib
+        if self.color_mode == 'inverted':
+            displayed_image = 1 - self.image
+        else:
+            displayed_image = self.image
+
+        self.axis.imshow(displayed_image, cmap='gray')
+        self.canvas.draw_idle()
+
+    def change_color(self):
+        # Change the color mode between 'grayscale' and 'inverted'
+        self.color_mode = 'inverted' if self.color_mode == 'grayscale' else 'grayscale'
+        self.update_displayed_image()
            

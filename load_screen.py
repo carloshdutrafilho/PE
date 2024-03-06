@@ -1,5 +1,6 @@
 import string
 from tkinter import Entry, Frame, Label, Button, messagebox, ttk, filedialog
+from tkinter.simpledialog import askstring
 from ttkthemes import ThemedStyle
 import os
 
@@ -71,15 +72,13 @@ class LoadScreen(Frame):
 
     def create_project(self):
         if not self.validate_entry():
-            # Se a validação falhar, exibe uma mensagem de aviso
             messagebox.showwarning("Warning", "Please enter a project name.")
             return
 
-        # Verificar se self.app.selected_file não é None
         file_path = filedialog.askopenfilename(filetypes=[("TIFF files", "*.tiff;*.tif")])
         if file_path:
             self.selected_file = file_path
-        
+    
             image_directory = os.path.dirname(self.selected_file)
             image_name = self.selected_file
 
@@ -88,8 +87,17 @@ class LoadScreen(Frame):
             default_directory = "C:/MedicAnalysis/Projects"
             if not os.path.exists(default_directory):
                 os.makedirs(default_directory)
-            
+        
             project_path = os.path.join(default_directory, project_name)
+
+            while os.path.exists(project_path):
+                if not project_name:
+                    new_project_name = askstring("Invalid Project Name", f"The project needs a name. Please enter a new name: ")
+                else:
+                    new_project_name = askstring("Invalid Project Name", f"A project with the name '{project_name}' already exists. Please enter a new name:")
+                project_name = new_project_name
+                project_path = os.path.join(default_directory, project_name)
+
             os.makedirs(project_path)
 
             identification_file_path = os.path.join(project_path, "identification.txt")
@@ -99,9 +107,7 @@ class LoadScreen(Frame):
 
             print(f"Project folder created: {project_path}")
 
-        self.image_viewer.load_image(file_path)
-        #self.master.destroy()
-
+            self.image_viewer.load_image(file_path)
     def validate_entry(self):
         if not self.entry_project_name.get():
             print("Project name is required.")
@@ -109,5 +115,4 @@ class LoadScreen(Frame):
         return True
 
     def load_project(self):
-        # Implemente a lógica para carregar o projeto
         print("Loading project...")

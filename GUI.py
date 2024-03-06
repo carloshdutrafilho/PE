@@ -17,7 +17,11 @@ class GUI(tk.Toplevel):
         self.configure(bg='white')
         
         # Initialize image viewer
-        self.image_viewer = ImageViewer(self)
+        self.image_viewer = None
+
+        # Initialize image viewer
+        #self.image_viewer = ImageViewer(self)
+        #self.image_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
         # Create an instance of MainScreen
         ##self.main_screen = MainScreen(self)

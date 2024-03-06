@@ -123,4 +123,4 @@ def threshold_max(images,threshold):
    """
     output = np.copy(images)
     output[images>threshold] = 1
-    return images
+    return output

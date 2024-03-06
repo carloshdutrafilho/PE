@@ -23,26 +23,19 @@ class ImageViewer(tk.Frame):
         self.canvas = FigureCanvasTkAgg(self.figure, master=self)
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         
-        
-        # Image label with the placeholder image
-        #self.image_label = tk.Label(self, image=self.placeholder_photo)
-        #self.image_label.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-        #self.time_slider = ttk.Scale(self, from_=0, to=10, variable=self.current_time, orient=tk.HORIZONTAL)
-        #self.time_slider.pack(side=tk.BOTTOM, fill=tk.X)
-        
-        # Additional slider for scrolling through images
-        self.image_slider = ttk.Scale(self, from_=0, to=10, variable=self.current_time, orient=tk.HORIZONTAL, command=self.update_image_slider)
-        self.image_slider.pack(side=tk.BOTTOM, fill=tk.X)
-        
         # Initialize image_paths attribute
         self.image_paths = []
+        
+        # Slider for scrolling through images/Time
+        self.image_slider = ttk.Scale(self, from_=0, to=len(self.image_paths)-1, variable=self.current_time, orient=tk.HORIZONTAL, command=self.update_image_slider)
+        self.image_slider.pack(side=tk.BOTTOM, fill=tk.X)
         
         # Add entry widgets for parameters
         self.moyennage_label = tk.Label(self, text="Temp. averaging:")
         self.moyennage_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.moyennage_entry = tk.Entry(self, width=10)
         self.moyennage_entry.pack(side=tk.LEFT, padx=10, pady=10)
+        self.moyennage_entry.bind("<Return>", self.temporal_averaging)
 
         # Contrast adjustment
         self.contrast_label = tk.Label(self, text="Contrast:")
@@ -67,6 +60,7 @@ class ImageViewer(tk.Frame):
         self.threshold_max_slider = ttk.Scale(self, from_=0, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_max_slider.pack(side=tk.LEFT, padx=10, pady=10)
         
+                
         # Keep a reference to the original image for reset functionality
         self.original_image = None
         self.image = None
@@ -102,22 +96,18 @@ class ImageViewer(tk.Frame):
     
     def update_contrast(self, *args):
         # Get contrast value from the slider
-        contrast = int(self.contrast_slider.get())
+        contrast = self.contrast_slider.get() / 100.0  # Normalize to range [-1, 1]
 
         # Apply contrast adjustment
         contrasted_image = self.contrast(self.image, contrast)
 
-        # Update the displayed image
-        #contrasted_photo = ImageTk.PhotoImage(contrasted_image)
-        #self.image_label.configure(image=contrasted_photo)
-        #self.image_label.image = contrasted_photo
         # Update the displayed image using Matplotlib
         self.axis.imshow(contrasted_image, cmap='gray')
         self.canvas.draw_idle()
 
     def contrast(self, image, value_contrast):
         # Calculate the contrasted image by multiplying by the contrast value
-        image_contrasted = np.clip(image * value_contrast / 100, 0, 1)  # Normalize to [0, 1]
+        image_contrasted = np.clip(image * (1.0 + value_contrast), 0, 1)  # Normalize to [0, 1]
 
         return image_contrasted
     
@@ -162,6 +152,7 @@ class ImageViewer(tk.Frame):
         # You can implement logic here to handle scrolling through images
         # Example: Load the image at the selected time point
         selected_time = int(self.current_time.get())
+        print("Selected Time:", selected_time)
         # Load the image based on the selected time
         # Call the appropriate method to load the image at the selected time
         self.load_image_at_time(selected_time)
@@ -178,6 +169,28 @@ class ImageViewer(tk.Frame):
             self.axis.clear()
             self.axis.imshow(self.image, cmap='gray')
             self.canvas.draw_idle()
+            
+    def temporal_averaging(self, event=None):
+        # Get the window size for temporal averaging from the entry widget
+        window_size = int(self.moyennage_entry.get())
+
+        # Check if the window size is valid
+        if window_size < 1 or window_size > len(self.image_paths):
+            return
+
+        # Load the images within the specified window for temporal averaging
+        start_time = int(self.current_time.get())
+        end_time = min(start_time + window_size, len(self.image_paths))
+
+        images_to_average = [np.array(Image.open(self.image_paths[i])) for i in range(start_time, end_time)]
+        images_to_average = np.array(images_to_average) / 255.0  # Normalize pixel values to [0, 1]
+
+        # Perform temporal averaging
+        averaged_image = np.mean(images_to_average, axis=0)
+
+        # Update the displayed image using Matplotlib
+        self.axis.imshow(averaged_image, cmap='gray')
+        self.canvas.draw_idle()
             
     def update_threshold(self, *args):
         # Get threshold values from the sliders
@@ -199,4 +212,3 @@ class ImageViewer(tk.Frame):
         thresholded_image[(image >= threshold_min) & (image <= threshold_max)] = 1  # Set values within the range to 1
 
         return thresholded_image        
-    

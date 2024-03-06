@@ -31,31 +31,54 @@ class ImageViewer(tk.Frame):
         self.image_slider.pack(side=tk.BOTTOM, fill=tk.X)
         
         # Add entry widgets for parameters
-        self.moyennage_label = tk.Label(self, text="Temp. averaging:")
+        self.moyennage_label = tk.Label(self, text="Temp. averaging=")
         self.moyennage_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.moyennage_entry = tk.Entry(self, width=10)
         self.moyennage_entry.pack(side=tk.LEFT, padx=10, pady=10)
         self.moyennage_entry.bind("<Return>", self.temporal_averaging)
 
         # Contrast adjustment
-        self.contrast_label = tk.Label(self, text="Contrast:")
+        self.contrast_label = tk.Label(self, text="Contrast=")
         self.contrast_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.contrast_slider = ttk.Scale(self, from_=0, to=100, orient=tk.HORIZONTAL, command=self.update_contrast)
         self.contrast_slider.pack(side=tk.LEFT, padx=10, pady=10)
         
         # Brightness adjustment
-        self.brightness_label = tk.Label(self, text="Brightness:")
+        self.brightness_label = tk.Label(self, text="Brightness=")
         self.brightness_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.brightness_slider = ttk.Scale(self, from_=-100, to=100, orient=tk.HORIZONTAL, command=self.update_brightness)
         self.brightness_slider.pack(side=tk.LEFT, padx=10, pady=10)
         
+        # Label to display current brightness value
+        #self.brightness_value_label = tk.Label(self, text="Brightness: 0      ", bd=1, relief=tk.SOLID)
+        #self.brightness_value_label.place(x=0, y=0)  # Initial position
+        #self.brightness_value_label.pack_forget()  # Hide initially 13
+        
+        # Labels to display contrast, threshold_min, and threshold_max
+        #self.contrast_value_label = tk.Label(self, text="Contrast: 0          ", bd=1, relief=tk.SOLID)
+        #self.contrast_value_label.place(x=0, y=20)
+        #self.contrast_value_label.pack_forget()
+
+        #self.threshold_min_value_label = tk.Label(self, text="Threshold Min: 0", bd=1, relief=tk.SOLID)
+        #self.threshold_min_value_label.place(x=0, y=40)
+        #self.threshold_min_value_label.pack_forget()
+
+        #self.threshold_max_value_label = tk.Label(self, text="Threshold Max: 0", bd=1, relief=tk.SOLID)
+        #self.threshold_max_value_label.place(x=0, y=60)
+        #self.threshold_max_value_label.pack_forget()
+        
+        # Label to display current parameters
+        self.parameters_label = tk.Label(self, text="Contrast: 0\nBrightness: 0\nThreshold Min: 0\nThreshold Max: 0  ", bd=1, relief=tk.SOLID, width=20, height=4)
+        self.parameters_label.place(x=0, y=0)  # Initial position
+        self.parameters_label.pack_forget()  # Hide initially
+        
         # Threshold adjustment
-        self.threshold_min_label = tk.Label(self, text="Min Threshold:")
+        self.threshold_min_label = tk.Label(self, text="Min Threshold=")
         self.threshold_min_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.threshold_min_slider = ttk.Scale(self, from_=0, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_min_slider.pack(side=tk.LEFT, padx=10, pady=10)
 
-        self.threshold_max_label = tk.Label(self, text="Max Threshold:")
+        self.threshold_max_label = tk.Label(self, text="Max Threshold=")
         self.threshold_max_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.threshold_max_slider = ttk.Scale(self, from_=0, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_max_slider.pack(side=tk.LEFT, padx=10, pady=10)
@@ -108,8 +131,14 @@ class ImageViewer(tk.Frame):
     
     def update_contrast(self, *args):
         # Get contrast value from the slider
-        contrast = self.contrast_slider.get() / 100.0  # Normalize to range [-1, 1]
+        contrast = round(self.contrast_slider.get() / 100.0, 2)  # Round to two decimal places
 
+        # Update the contrast label with the current value
+        #self.contrast_value_label.config(text=f"Contrast: {contrast}")
+        
+        # Update the parameters label with the current values
+        self.update_parameters_label(contrast=contrast)
+        
         # Apply contrast adjustment
         contrasted_image = self.contrast(self.image, contrast)
 
@@ -125,8 +154,14 @@ class ImageViewer(tk.Frame):
     
     def update_brightness(self, *args):
         # Get brightness value from the slider
-        brightness = self.brightness_slider.get()
+        brightness = round(self.brightness_slider.get(), 2)  # Round to two decimal places
+        
+        # Update the brightness label with the current value
+        #self.brightness_value_label.config(text=f"Brightness: {brightness}")
 
+        # Update the parameters label with the current values
+        self.update_parameters_label(brightness=brightness)
+        
         # Apply brightness adjustment
         brightened_image = self.brightness(self.image, brightness)
 
@@ -223,8 +258,15 @@ class ImageViewer(tk.Frame):
             
     def update_threshold(self, *args):
         # Get threshold values from the sliders
-        threshold_min = self.threshold_min_slider.get()
-        threshold_max = self.threshold_max_slider.get()
+        threshold_min = round(self.threshold_min_slider.get(), 2)  # Round to two decimal places
+        threshold_max = round(self.threshold_max_slider.get(), 2)  # Round to two decimal places
+        
+        # Update the threshold labels with the current values
+        #self.threshold_min_value_label.config(text=f"Threshold Min: {threshold_min}")
+        #self.threshold_max_value_label.config(text=f"Threshold Max: {threshold_max}")
+
+        # Update the parameters label with the current values
+        self.update_parameters_label(threshold_min=threshold_min, threshold_max=threshold_max)
 
         # Apply threshold adjustment
         thresholded_image = self.threshold(self.image, threshold_min, threshold_max)
@@ -240,6 +282,26 @@ class ImageViewer(tk.Frame):
         thresholded_image[image > threshold_max] = 1  # Set values above the max threshold to 0
         
         return thresholded_image 
+    
+    def update_parameters_label(self, brightness=None, contrast=None, threshold_min=None, threshold_max=None):
+        # Get the current label text
+        current_text = self.parameters_label.cget("text")
+
+        # Extract the previously set values from the current label text
+        previous_brightness = current_text.split("\n")[0].split(": ")[1]
+        previous_contrast = current_text.split("\n")[1].split(": ")[1]
+        previous_threshold_min = current_text.split("\n")[2].split(": ")[1]
+        previous_threshold_max = current_text.split("\n")[3].split(": ")[1]
+
+        # Set the values to the previous values if they are None
+        brightness = previous_brightness if brightness is None else brightness
+        contrast = previous_contrast if contrast is None else contrast
+        threshold_min = previous_threshold_min if threshold_min is None else threshold_min
+        threshold_max = previous_threshold_max if threshold_max is None else threshold_max
+
+        # Update the parameters label with the current values
+        parameters_text = f"Contrast: {contrast}\nBrightness: {brightness}\nThreshold Min: {threshold_min}\nThreshold Max: {threshold_max}  "
+        self.parameters_label.config(text=parameters_text)
     
     def update_displayed_image(self):
         # Update the displayed image using Matplotlib

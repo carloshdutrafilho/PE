@@ -64,6 +64,9 @@ class ImageViewer(tk.Frame):
         self.color_change_button = tk.Button(self, text="Change Color", command=self.change_color)
         self.color_change_button.pack(side=tk.TOP, anchor=tk.NE, padx=10, pady=10)
         
+        # Temporal averaging variables
+        self.window_size = 1  # Initial window size
+        self.images_for_temporal_averaging = []  # List to store images for averaging
                 
         # Keep a reference to the original image for reset functionality
         self.original_image = None
@@ -90,6 +93,9 @@ class ImageViewer(tk.Frame):
         #self.axis.imshow(self.image, cmap='gray')
         #self.canvas.draw_idle()
         self.update_displayed_image()
+        
+        # Initialize images_for_temporal_averaging list with the first image
+        self.images_for_temporal_averaging = [self.normalized_image_array]
 
     def update_time_slider(self, max_time):
         self.time_slider.configure(to=max_time)
@@ -176,7 +182,7 @@ class ImageViewer(tk.Frame):
             self.axis.imshow(self.image, cmap='gray')
             self.canvas.draw_idle()
             
-    def temporal_averaging(self, event=None):
+    def update_window_size(self):
         # Get the window size for temporal averaging from the entry widget
         window_size = int(self.moyennage_entry.get())
 
@@ -184,15 +190,32 @@ class ImageViewer(tk.Frame):
         if window_size < 1 or window_size > len(self.image_paths):
             return
 
+        # Update the window size and reload images for temporal averaging
+        self.window_size = window_size
+        self.load_images_for_temporal_averaging()
+
+            
+    def load_images_for_temporal_averaging(self):
         # Load the images within the specified window for temporal averaging
         start_time = int(self.current_time.get())
-        end_time = min(start_time + window_size, len(self.image_paths))
+        end_time = min(start_time + self.window_size, len(self.image_paths))
 
         images_to_average = [np.array(Image.open(self.image_paths[i])) for i in range(start_time, end_time)]
         images_to_average = np.array(images_to_average) / 255.0  # Normalize pixel values to [0, 1]
 
+        # Update the list of images for temporal averaging
+        self.images_for_temporal_averaging = images_to_average
+
+        # Perform temporal averaging and update the displayed image
+        self.temporal_averaging()
+
+    def temporal_averaging(self, event=None):
+        # Check if there are images for temporal averaging
+        if not self.images_for_temporal_averaging:
+            return
+
         # Perform temporal averaging
-        averaged_image = np.mean(images_to_average, axis=0)
+        averaged_image = np.mean(self.images_for_temporal_averaging, axis=0)
 
         # Update the displayed image using Matplotlib
         self.axis.imshow(averaged_image, cmap='gray')

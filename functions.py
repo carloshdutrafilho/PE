@@ -33,7 +33,7 @@ def brightness(image, valeur_luminosite):
     -----------
     image : 3D numpy array (number_of_images, number_x_pixels, number_y_pixels)
         Pixel values must be floats between 0 and 1.
-    brightness_value : float between 0 and 1
+    brightness_value : float between -1 and 1
         Value to adjust the brightness.
 
     Return

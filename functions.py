@@ -19,17 +19,21 @@ def brightness(image, valeur_luminosite):
 def moyennage_temporel(images, window):
     #Calculate the temporal averages with a window 
     n,x,y = images.shape
+    output = np.copy(images)
     for i in range(n-window+1):
-        images[i] = np.mean(images[i:i+window,:,:], axis = 0)
-    return images  
+        output[i] = np.mean(images[i:i+window,:,:], axis = 0)
+    return output  
 
 def invert_colors(images):
-    return   2**16 - images
+    output = np.copy(images)
+    return   2**16 - output
 
 def threshold_min(images,threshold):
-    images[images<threshold] = 0
-    return images
+    output = np.copy(images)
+    output[images<threshold] = 0
+    return output
 
 def threshold_max(images,threshold):
-    images[images>threshold] = 2**16
+    output = np.copy(images)
+    output[images>threshold] = 2**16
     return images

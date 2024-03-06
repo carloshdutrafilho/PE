@@ -14,7 +14,6 @@ class ImageViewer(tk.Frame):
         self.current_time.set(0)
         
         # Placeholder image
-        self.placeholder_image = Image.new("RGB", (519, 512), "lightgray")
         self.placeholder_image = Image.new("RGB", (500, 450), "lightgray")
         self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
 

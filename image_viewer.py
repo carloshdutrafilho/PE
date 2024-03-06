@@ -210,4 +210,5 @@ class ImageViewer(tk.Frame):
         thresholded_image[image < threshold_min] = 0  # Set values below the min threshold to 0
         thresholded_image[image > threshold_max] = 1  # Set values above the max threshold to 0
         
-        return thresholded_image        
+        return thresholded_image 
+           

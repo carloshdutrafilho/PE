@@ -5,6 +5,7 @@ import os
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
+from PIL import ImageSequence
 
 class ImageViewer(tk.Frame):
     def __init__(self, master):
@@ -86,10 +87,42 @@ class ImageViewer(tk.Frame):
         self.normalized_image_array = (self.original_image_array - min_value) / (max_value - min_value)
         ##
     
-        self.image = self.normalized_image_array.copy()  # Create a copy for editing
+        self.image = self.normalized_image_array[int(self.current_time.get())].copy()  # Create a copy for editing
         self.original_photo = ImageTk.PhotoImage(self.original_image)
         self.axis.imshow(self.image, cmap='gray')
         self.canvas.draw_idle()
+        self.canvas.draw()
+
+    # def load_image(self, image_path):
+    # # Open the TIFF file
+    #     tiff_image = Image.open(image_path)
+
+    #     # Create a list to store the images from different pages
+    #     image_pages = []
+
+    #     # Iterate over all pages in the TIFF file
+    #     for page in ImageSequence.Iterator(tiff_image):
+    #         # Convert the page to a NumPy array
+    #         page_array = np.array(page)
+
+    #         # Normalize the pixel values to the range [0, 1]
+    #         min_value = np.min(page_array)
+    #         max_value = np.max(page_array)
+    #         normalized_page_array = (page_array - min_value) / (max_value - min_value)
+
+    #         # Append the normalized page array to the list
+    #         image_pages.append(normalized_page_array)
+
+    #     # Set the current image based on the current_time variable
+    #     current_time_index = int(self.current_time.get())
+    #     if current_time_index < 0 or current_time_index >= len(image_pages):
+    #         return  # Handle the case when the specified time is out of bounds
+
+    #     self.image = image_pages[current_time_index].copy()  # Use the selected time index
+    #     self.original_photo = ImageTk.PhotoImage(tiff_image)
+    #     self.axis.imshow(self.image, cmap='gray')
+    #     self.canvas.draw_idle()
+    #     self.canvas.draw()
 
     def update_time_slider(self, max_time):
         self.time_slider.configure(to=max_time)

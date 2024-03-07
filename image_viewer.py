@@ -17,76 +17,65 @@ class ImageViewer(tk.Frame):
         # Placeholder image
         self.placeholder_image = Image.new("RGB", (500, 450), "lightgray")
         self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
+        
+        # Create a container for the image and parameters
+        self.image_container = tk.Frame(self)
+        self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         # Create a Matplotlib figure and axis for image display
         self.figure = Figure(figsize=(6, 6))
         self.axis = self.figure.add_subplot(111)
-        self.canvas = FigureCanvasTkAgg(self.figure, master=self)
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.canvas = FigureCanvasTkAgg(self.figure, master=self.image_container)
+        self.canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # Label to display current parameters
+        self.parameters_label = tk.Label(self.image_container, text="Contrast: 0\nBrightness: 0\nThreshold Min: 0\nThreshold Max: 0  ", bd=1, relief=tk.SOLID, width=20, height=4)
+        self.parameters_label.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+        
+        # Color change button
+        self.color_change_button = tk.Button(self.image_container, text="Change Color", command=self.change_color)
+        self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
         
         # Initialize image_paths attribute
         self.image_paths = []
         
         # Slider for scrolling through images/Time
         self.image_slider = ttk.Scale(self, from_=0, to=len(self.image_paths)-1, variable=self.current_time, orient=tk.HORIZONTAL, command=self.update_image_slider)
-        self.image_slider.pack(side=tk.BOTTOM, fill=tk.X)
+        self.image_slider.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
+        
+        # Create a container for parameters and sliders
+        self.parameters_container = tk.Frame(self)
+        self.parameters_container.pack(side=tk.BOTTOM, pady=10)
         
         # Add entry widgets for parameters
-        self.moyennage_label = tk.Label(self, text="Temp. averaging=")
+        self.moyennage_label = tk.Label(self.parameters_container, text="Temp. averaging=")
         self.moyennage_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.moyennage_entry = tk.Entry(self, width=10)
+        self.moyennage_entry = tk.Entry(self.parameters_container, width=10)
         self.moyennage_entry.pack(side=tk.LEFT, padx=10, pady=10)
         self.moyennage_entry.bind("<Return>", self.temporal_averaging)
 
         # Contrast adjustment
-        self.contrast_label = tk.Label(self, text="Contrast=")
+        self.contrast_label = tk.Label(self.parameters_container, text="Contrast=")
         self.contrast_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.contrast_slider = ttk.Scale(self, from_=0, to=100, orient=tk.HORIZONTAL, command=self.update_contrast)
+        self.contrast_slider = ttk.Scale(self.parameters_container, from_=0, to=100, orient=tk.HORIZONTAL, command=self.update_contrast)
         self.contrast_slider.pack(side=tk.LEFT, padx=10, pady=10)
         
         # Brightness adjustment
-        self.brightness_label = tk.Label(self, text="Brightness=")
+        self.brightness_label = tk.Label(self.parameters_container, text="Brightness=")
         self.brightness_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.brightness_slider = ttk.Scale(self, from_=-100, to=100, orient=tk.HORIZONTAL, command=self.update_brightness)
+        self.brightness_slider = ttk.Scale(self.parameters_container, from_=-100, to=100, orient=tk.HORIZONTAL, command=self.update_brightness)
         self.brightness_slider.pack(side=tk.LEFT, padx=10, pady=10)
-        
-        # Label to display current brightness value
-        #self.brightness_value_label = tk.Label(self, text="Brightness: 0      ", bd=1, relief=tk.SOLID)
-        #self.brightness_value_label.place(x=0, y=0)  # Initial position
-        #self.brightness_value_label.pack_forget()  # Hide initially 13
-        
-        # Labels to display contrast, threshold_min, and threshold_max
-        #self.contrast_value_label = tk.Label(self, text="Contrast: 0          ", bd=1, relief=tk.SOLID)
-        #self.contrast_value_label.place(x=0, y=20)
-        #self.contrast_value_label.pack_forget()
 
-        #self.threshold_min_value_label = tk.Label(self, text="Threshold Min: 0", bd=1, relief=tk.SOLID)
-        #self.threshold_min_value_label.place(x=0, y=40)
-        #self.threshold_min_value_label.pack_forget()
-
-        #self.threshold_max_value_label = tk.Label(self, text="Threshold Max: 0", bd=1, relief=tk.SOLID)
-        #self.threshold_max_value_label.place(x=0, y=60)
-        #self.threshold_max_value_label.pack_forget()
-        
-        # Label to display current parameters
-        self.parameters_label = tk.Label(self, text="Contrast: 0\nBrightness: 0\nThreshold Min: 0\nThreshold Max: 0  ", bd=1, relief=tk.SOLID, width=20, height=4)
-        self.parameters_label.place(x=0, y=0)  # Initial position
-        self.parameters_label.pack_forget()  # Hide initially
-        
         # Threshold adjustment
-        self.threshold_min_label = tk.Label(self, text="Min Threshold=")
+        self.threshold_min_label = tk.Label(self.parameters_container, text="Min Threshold=")
         self.threshold_min_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.threshold_min_slider = ttk.Scale(self, from_=0, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
+        self.threshold_min_slider = ttk.Scale(self.parameters_container, from_=0, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_min_slider.pack(side=tk.LEFT, padx=10, pady=10)
 
-        self.threshold_max_label = tk.Label(self, text="Max Threshold=")
+        self.threshold_max_label = tk.Label(self.parameters_container, text="Max Threshold=")
         self.threshold_max_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.threshold_max_slider = ttk.Scale(self, from_=0, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
+        self.threshold_max_slider = ttk.Scale(self.parameters_container, from_=0, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_max_slider.pack(side=tk.LEFT, padx=10, pady=10)
-        
-        # Color change button
-        self.color_change_button = tk.Button(self, text="Change Color", command=self.change_color)
-        self.color_change_button.pack(side=tk.TOP, anchor=tk.NE, padx=10, pady=10)
         
         # Temporal averaging variables
         self.window_size = 1  # Initial window size
@@ -111,9 +100,29 @@ class ImageViewer(tk.Frame):
         max_value = np.max(self.original_image_array)
         self.normalized_image_array = (self.original_image_array - min_value) / (max_value - min_value)
         ##
-    
-        self.image = self.normalized_image_array[int(self.current_time.get())].copy()  # Create a copy for editing
-        self.original_photo = ImageTk.PhotoImage(self.original_image)
+        # Check the shape of the normalized image array
+        if len(self.normalized_image_array.shape) == 2:
+            # If the array is 2D, keep it as is
+            self.image = self.normalized_image_array.copy()
+        elif len(self.normalized_image_array.shape) == 3:
+            # If the array is 3D (RGB), convert it to grayscale
+            self.image = np.mean(self.normalized_image_array, axis=-1).copy()
+        
+        # Reshape the 3D array to 2D for display
+        displayed_image = self.image.reshape(self.image.shape[0], self.image.shape[1])
+
+        # Check if the displayed image has the correct shape
+        if displayed_image.shape[0] == 0 or displayed_image.shape[1] == 0:
+            # Handle the case where the displayed image has incorrect dimensions
+            print("Error: Incorrect dimensions after reshaping.")
+            return
+
+        print(displayed_image.shape)
+        
+        self.axis.imshow(displayed_image, cmap='gray')  # Display the reshaped 2D image
+        self.canvas.draw_idle()
+        
+        # self.original_photo = ImageTk.PhotoImage(self.original_image)
         # self.axis.imshow(self.image, cmap='gray')
         # self.canvas.draw_idle()
         # self.canvas.draw()
@@ -249,6 +258,7 @@ class ImageViewer(tk.Frame):
             self.axis.clear()
             self.axis.imshow(self.image, cmap='gray')
             self.canvas.draw_idle()
+            self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)  # Pack the button again
             
     def update_window_size(self):
         # Get the window size for temporal averaging from the entry widget
@@ -338,16 +348,27 @@ class ImageViewer(tk.Frame):
     
     def update_displayed_image(self):
         # Update the displayed image using Matplotlib
-        if self.color_mode == 'inverted':
-            displayed_image = 1 - self.image
-        else:
-            displayed_image = self.image
+        #if self.color_mode == 'inverted':
+         #   displayed_image = 1 - self.image
+        #else:
+         #   displayed_image = self.image
 
+        #self.axis.imshow(displayed_image, cmap='gray')
+        #self.canvas.draw_idle()
+        
+        # Update the displayed image using Matplotlib
+        displayed_image = self.apply_color_mode(self.image)
         self.axis.imshow(displayed_image, cmap='gray')
         self.canvas.draw_idle()
+        
+    def apply_color_mode(self, image):
+        # Apply the selected color mode to the image
+        if self.color_mode == 'inverted':
+            return 1.0 - image.reshape(self.original_image_array.shape)  # Reshape to the original shape
+        else:
+            return image
 
     def change_color(self):
-        # Change the color mode between 'grayscale' and 'inverted'
         self.color_mode = 'inverted' if self.color_mode == 'grayscale' else 'grayscale'
         self.update_displayed_image()
-           
+        self.color_change_button.pack(side=tk.TOP, anchor=tk.NE, padx=10, pady=10)  # Pack the button again    

@@ -5,11 +5,9 @@ import tkinter as tk
 from tkinter import filedialog
 from image_viewer import ImageViewer
 from data_viewer import DataViewer  
-#from graph_viewer import GraphViewer
-from graph_viewer import ImageSliderApp
+from graph_viewer import GraphViewer
 from file_viewer import FileViewer
 from load_screen import LoadScreen
-#from ttkthemes import ThemedStyle
 
 class GUI(tk.Toplevel):
     def __init__(self, master=None, app=None, image_path=None):
@@ -19,17 +17,7 @@ class GUI(tk.Toplevel):
         self.configure(bg='white')
         
         # Initialize image viewer
-        self.image_viewer = ImageViewer(self)
-        
-        # Create an instance of MainScreen
-        ##self.main_screen = MainScreen(self)
-        ##self.main_screen.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-        # !!!!!""
-
-        # Container for File Explorer, Image Viewer, and Data/Graph Viewers
-        ## main_container = tk.Frame(self)
-        ## main_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.image_viewer = None
         
         # Container for File Explorer, Image Viewer, and Data/Graph Viewers
         main_container = tk.PanedWindow(self, orient=tk.HORIZONTAL, sashwidth=5, sashrelief=tk.SUNKEN)
@@ -59,24 +47,10 @@ class GUI(tk.Toplevel):
         data_graph_frame.add(self.data_viewer, minsize=100)  # Set minimum size
 
         # Graph Viewer
-        #self.graph_viewer = GraphViewer(data_graph_frame)
-        self.image_slider = ImageSliderApp(data_graph_frame)
-        data_graph_frame.add(self.image_slider, minsize=100)  # Set minimum size
+        self.graph_viewer = GraphViewer(data_graph_frame)
+        data_graph_frame.add(self.graph_viewer, minsize=100)  # Set minimum size
         
         self.load_screen = LoadScreen(self.master, app=self, image_viewer=self.image_viewer)
-
-        
-        # Data and Graph Viewers
-        #data_graph_frame = tk.Frame(main_container, bg='white')
-        #data_graph_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        # Data Viewer
-        #self.data_viewer = DataViewer(data_graph_frame)
-        #self.data_viewer.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        
-        # Graph Viewer
-        #self.graph_viewer = GraphViewer(data_graph_frame)
-        #self.graph_viewer.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         
         # Create a menu bar
         menubar = tk.Menu(self)
@@ -119,7 +93,6 @@ class GUI(tk.Toplevel):
 
         self.config(menu=menubar)
     
-        
         # Variable to track night mode
         self.night_mode = tk.BooleanVar()
         self.night_mode.set(False)

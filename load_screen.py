@@ -7,7 +7,7 @@ import os
 class LoadScreen(Frame):
     def __init__(self, master=None, app=None, image_viewer=None):
         super().__init__(master)
-        self.app = app
+        #self.app = app
         self.image_viewer = image_viewer
         self.pack(expand=True, fill="both")
 
@@ -76,7 +76,12 @@ class LoadScreen(Frame):
             return
 
         file_path = filedialog.askopenfilename(filetypes=[("TIFF files", "*.tiff;*.tif")])
+
         if file_path:
+            if not file_path.lower().endswith(('.tiff', '.tif')):
+                messagebox.showwarning("Warning", "Please select a TIFF file.")
+            return
+
             self.selected_file = file_path
     
             image_directory = os.path.dirname(self.selected_file)
@@ -108,6 +113,7 @@ class LoadScreen(Frame):
             print(f"Project folder created: {project_path}")
 
             self.image_viewer.load_image(file_path)
+
     def validate_entry(self):
         if not self.entry_project_name.get():
             print("Project name is required.")
@@ -115,4 +121,40 @@ class LoadScreen(Frame):
         return True
 
     def load_project(self):
-        print("Loading project...")
+        # Pedir ao usuário para selecionar uma pasta
+        selected_directory = filedialog.askdirectory()
+
+        if selected_directory:
+            identification_file_path = os.path.join(selected_directory, "identification.txt")
+
+            # Verificar se o arquivo de identificação existe na pasta selecionada
+            if os.path.exists(identification_file_path):
+                with open(identification_file_path, "r") as identification_file:
+                    # Ler informações do arquivo de identificação linha a linha
+                    project_name_line = identification_file.readline().strip()
+                    path_line = identification_file.readline().strip()
+
+                    # Validar o formato do arquivo de identificação
+                    if not project_name_line.startswith("Project:"):
+                        messagebox.showwarning("Warning", "Invalid format in identification file.")
+                        return
+
+                    project_name = project_name_line.split(":", 1)[1].strip()
+
+                    if not path_line.startswith("Path-"):
+                        messagebox.showwarning("Warning", "Invalid format in identification file.")
+                        return
+
+                    image_path = path_line.split("-", 1)[1].strip()
+
+                # Agora você tem o project_name e image_path para usar conforme necessário
+                print(f"Loaded project: {project_name}")
+                print(f"Image path: {image_path}")
+
+                # Implemente aqui a lógica para carregar a imagem .tiff usando image_path
+                self.image_viewer.load_image(image_path)
+            else:
+                messagebox.showwarning("Warning", "Selected folder does not contain a valid identification file.")
+        else:
+            messagebox.showwarning("Warning", "No folder selected.")
+

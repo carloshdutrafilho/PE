@@ -6,6 +6,8 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
 from PIL import ImageSequence
+import matplotlib.pyplot as plt
+from tkinter import PhotoImage
 
 class ImageViewer(tk.Frame):
     def __init__(self, master):
@@ -37,6 +39,47 @@ class ImageViewer(tk.Frame):
         self.color_change_button = tk.Button(self.image_container, text="Change Color", command=self.change_color)
         self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
         self.is_color_changed = False
+        
+        # Zoom selection variables
+        self.zoom_start_x = None
+        self.zoom_start_y = None
+        self.zoom_rect = None
+        # Add a variable to track zoom mode
+        self.zoom_mode_enabled = False
+        
+        # Bind events for zoom selection
+        self.canvas.mpl_connect('button_press_event', self.on_press)
+        self.canvas.mpl_connect('motion_notify_event', self.on_motion)
+        self.canvas.mpl_connect('button_release_event', self.on_release)
+        
+        # Load magnifying glass icons using PIL
+        zoom_in_image = Image.open("zoom-in.png")
+        zoom_out_image = Image.open("zoom-out.png")
+
+        # Resize the images if needed
+        icon_size = (20, 20)
+        zoom_in_image = zoom_in_image.resize(icon_size, Image.LANCZOS)
+        zoom_out_image = zoom_out_image.resize(icon_size, Image.LANCZOS)
+        
+        # Create PhotoImage objects
+        self.zoom_in_icon = ImageTk.PhotoImage(zoom_in_image)
+        self.zoom_out_icon = ImageTk.PhotoImage(zoom_out_image)
+        
+        # Zoom in button
+        self.zoom_in_button = tk.Button(self.image_container, image=self.zoom_in_icon, command=self.toggle_zoom_mode)
+        self.zoom_in_button.image = self.zoom_in_icon  # Keep a reference
+        self.zoom_in_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+
+        # Zoom out button
+        self.zoom_out_button = tk.Button(self.image_container, image=self.zoom_out_icon, command=self.zoom_out)
+        self.zoom_out_button.image = self.zoom_out_icon  # Keep a reference
+        self.zoom_out_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+        
+        # Zoom factor for zooming in and out
+        self.zoom_factor = 1.2
+
+        # Set initial zoom level
+        self.current_zoom_level = 1.0
         
         # Initialize image_paths attribute
         self.image_paths = []
@@ -359,10 +402,24 @@ class ImageViewer(tk.Frame):
 
         #self.axis.imshow(displayed_image, cmap='gray')
         #self.canvas.draw_idle()
+        # Get the original image shape
+        original_shape = self.original_image_array.shape
+
+        # Reshape the image to its original shape
+        displayed_image = self.image.reshape(original_shape)
+
+        # Apply color mode
+        displayed_image = self.apply_color_mode(displayed_image)
+        
+        # Resize the image based on the current zoom level
+        resized_image = Image.fromarray((displayed_image * 255).astype(np.uint8))
+        new_size = tuple(int(dim * self.current_zoom_level) for dim in original_shape[:2])
+        resized_image = resized_image.resize(new_size, Image.LANCZOS)
         
         # Update the displayed image using Matplotlib
-        displayed_image = self.apply_color_mode(self.image)
-        self.axis.imshow(displayed_image, cmap='gray')
+        # displayed_image = self.apply_color_mode(self.image)
+        # Update the displayed image using Matplotlib
+        self.axis.imshow(resized_image, cmap='gray')
         self.canvas.draw_idle()
         
     def apply_color_mode(self, image):
@@ -380,3 +437,76 @@ class ImageViewer(tk.Frame):
         self.color_mode = 'inverted' if self.is_color_changed else 'grayscale'
         self.update_displayed_image()
         self.color_change_button.config(text="Change Color" if not self.is_color_changed else "Revert Color")
+        
+    def zoom_in(self):
+        # Zoom in the image
+        self.current_zoom_level *= self.zoom_factor
+        self.update_displayed_image()
+
+    def zoom_out(self):
+        # Zoom out the image
+        self.current_zoom_level /= self.zoom_factor
+        self.update_displayed_image()
+    
+    def toggle_zoom_mode(self):
+        # Toggle the zoom mode on/off
+        self.zoom_mode_enabled = not self.zoom_mode_enabled
+            
+    # Zoom Selection
+    def on_press(self, event):
+        # Check if zoom mode is enabled
+        if not self.zoom_mode_enabled:
+            return
+
+        # Store the starting position for zoom selection
+        self.zoom_start_x = event.xdata
+        self.zoom_start_y = event.ydata
+
+    def on_motion(self, event):
+        
+        # Check if zoom mode is enabled
+        if not self.zoom_mode_enabled:
+            return
+
+        # Update the zoom rectangle during motion
+        if self.zoom_start_x is not None and self.zoom_start_y is not None:
+            current_x = event.xdata
+            current_y = event.ydata
+
+            if self.zoom_rect:
+                self.axis.patches.remove(self.zoom_rect)
+
+            width = current_x - self.zoom_start_x
+            height = current_y - self.zoom_start_y
+
+            self.zoom_rect = plt.Rectangle((self.zoom_start_x, self.zoom_start_y), width, height,
+                                       linewidth=1, edgecolor='r', facecolor='none')
+            self.axis.add_patch(self.zoom_rect)
+            self.canvas.draw()
+
+    def on_release(self, event):
+        # Check if zoom mode is enabled
+        if not self.zoom_mode_enabled:
+            return
+        
+        # Perform zoom based on the selected area
+        if self.zoom_start_x is not None and self.zoom_start_y is not None:
+            current_x = event.xdata
+            current_y = event.ydata
+
+            width = current_x - self.zoom_start_x
+            height = current_y - self.zoom_start_y
+
+            if width != 0 and height != 0:
+                # Calculate the zoomed area and update the displayed image
+                zoomed_area = self.image[int(self.zoom_start_y):int(current_y), int(self.zoom_start_x):int(current_x)]
+
+
+                # Update the displayed image using Matplotlib
+                self.axis.imshow(zoomed_area, cmap='gray')
+                self.canvas.draw_idle()
+
+            # Reset zoom selection variables
+            self.zoom_start_x = None
+            self.zoom_start_y = None
+            self.zoom_rect = None

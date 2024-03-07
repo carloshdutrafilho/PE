@@ -75,6 +75,23 @@ class ImageViewer(tk.Frame):
         self.zoom_out_button.image = self.zoom_out_icon  # Keep a reference
         self.zoom_out_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
         
+        
+        # Segmentation button with icon
+        segmentation_icon = Image.open("segmentation.png")
+        segmentation_icon = segmentation_icon.resize((20, 20), Image.LANCZOS)
+        segmentation_photo = ImageTk.PhotoImage(segmentation_icon)
+
+        self.segmentation_button = tk.Button(self.image_container, command=self.toggle_segmentation_mode, image=segmentation_photo, compound="left")
+        self.segmentation_button.image = segmentation_photo  # Keep a reference
+        self.segmentation_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+
+        # Segmentation variables
+        self.segmentation_mode_enabled = False
+        self.segment_points = []
+
+        # Bind event for segmentation
+        self.canvas.mpl_connect('button_press_event', self.on_segment_click)
+        
         # Zoom factor for zooming in and out
         self.zoom_factor = 1.2
 
@@ -510,3 +527,44 @@ class ImageViewer(tk.Frame):
             self.zoom_start_x = None
             self.zoom_start_y = None
             self.zoom_rect = None
+            
+            
+    # SEGMENTATION
+    def toggle_segmentation_mode(self):
+        # Toggle the segmentation mode on/off
+        self.segmentation_mode_enabled = not self.segmentation_mode_enabled
+
+        if self.segmentation_mode_enabled:
+            # Clear previous segment points
+            self.segment_points = []
+            self.segmentation_button.config(text="Stop Segmentation")
+        else:
+            # Process segments and update the displayed image
+            self.process_segments()
+            self.segmentation_button.config(text="Start Segmentation")
+
+    def on_segment_click(self, event):
+        # Check if segmentation mode is enabled
+        if not self.segmentation_mode_enabled:
+            return
+
+        # Add the clicked point to the segment points
+        self.segment_points.append((event.xdata, event.ydata))
+
+        # Draw a red dot at the clicked point
+        self.axis.plot(event.xdata, event.ydata, 'ro')
+        self.canvas.draw()
+
+    def process_segments(self):
+        if len(self.segment_points) < 3:
+            return  # At least 3 points needed to form a segment
+
+        # Add the first point to the end to create a closed segment
+        self.segment_points.append(self.segment_points[0])
+
+        # Convert segment points to NumPy array
+        segment_points_array = np.array(self.segment_points)
+
+        # Draw the closed segment on the displayed image
+        self.axis.plot(segment_points_array[:, 0], segment_points_array[:, 1], 'r-')
+        self.canvas.draw()

@@ -98,60 +98,93 @@ class ImageViewer(tk.Frame):
         self.color_mode = 'grayscale'  # Initial color mode
         self.reset_image()
 
-    def load_image(self, image_path):
-        # Load and display image using Matplotlib
-        self.original_image = Image.open(image_path)
+    # def load_image(self, image_path):
+    #     # Load and display image using Matplotlib
+    #     self.original_image = Image.open(image_path)
 
-        # Convert the original image to a NumPy array
-        self.original_image_array = np.array(self.original_image)
+    #     # Convert the original image to a NumPy array
+    #     self.original_image_array = np.array(self.original_image)
 
-        ##
-        # Normalize the pixel values to the range [0, 1]
-        min_value = np.min(self.original_image_array)
-        max_value = np.max(self.original_image_array)
-        self.normalized_image_array = (self.original_image_array - min_value) / (max_value - min_value)
-        ##
+    #     ##
+    #     # Normalize the pixel values to the range [0, 1]
+    #     min_value = np.min(self.original_image_array)
+    #     max_value = np.max(self.original_image_array)
+    #     self.normalized_image_array = (self.original_image_array - min_value) / (max_value - min_value)
+    #     ##
     
-        self.image = self.normalized_image_array[int(self.current_time.get())].copy()  # Create a copy for editing
-        self.original_photo = ImageTk.PhotoImage(self.original_image)
-        # self.axis.imshow(self.image, cmap='gray')
+    #     self.image = self.normalized_image_array[int(self.current_time.get())].copy()  # Create a copy for editing
+    #     self.original_photo = ImageTk.PhotoImage(self.original_image)
+    #     # self.axis.imshow(self.image, cmap='gray')
+    #     # self.canvas.draw_idle()
+    #     # self.canvas.draw()
+    #     self.update_displayed_image()
+        
+    #     # Initialize images_for_temporal_averaging list with the first image
+    #     self.images_for_temporal_averaging = [self.normalized_image_array]
+
+    # I wanna be able to select the images from the list and load them into the image viewer using the image_slider
+    
+    def load_image(self, image_path):
+        # Open the TIFF file
+        tiff_image = Image.open(image_path)
+        # Initialize the list as an instance attribute
+        #self.image_paths = []
+        #self.image_paths.append(tiff_image)
+
+        #Iterate over all pages in the TIFF file
+        for page in ImageSequence.Iterator(tiff_image):
+            # # Convert the page to a NumPy array
+            # page_array = np.array(page)
+
+            # # Normalize the pixel values to the range [0, 1]
+            # min_value = np.min(page_array)
+            # max_value = np.max(page_array)
+            # normalized_page_array = (page_array - min_value) / (max_value - min_value)
+
+            # Append the normalized page array to the list
+            self.image_paths.append(page)
+
+        # Set the current time slider range based on the number of pages
+        self.image_slider.configure(to=len(self.image_paths) - 1)
+        current_time_index = int(self.image_slider.get())
+
+        if current_time_index < 0 or current_time_index >= len(self.image_paths):
+            return
+
+        # Update the displayed image
+        self.display_image_at_time(current_time_index)
+
+        # # Set the current image based on the image_slider position
+        # current_time_index = int(self.image_slider.get())
+
+        # if current_time_index < 0 or current_time_index >= len(self.image_paths):
+        #     return  # Handle the case when the specified time is out of bounds
+
+        # #self.image = self.image_paths[current_time_index].copy()  # Use the selected time index
+        # self.original_photo = ImageTk.PhotoImage(tiff_image)
+        # self.axis.clear()  # Clear the previous image
+        # self.axis.imshow(self.image_paths[current_time_index], cmap='gray')
         # self.canvas.draw_idle()
         # self.canvas.draw()
-        self.update_displayed_image()
-        
-        # Initialize images_for_temporal_averaging list with the first image
-        self.images_for_temporal_averaging = [self.normalized_image_array]
 
-    # def load_image(self, image_path):
-    # # Open the TIFF file
-    #     tiff_image = Image.open(image_path)
+    def display_image_at_time(self, time):
+        print(f"Displaying image at time: {time}")
+        if not self.image_paths:
+            return  # No images loaded yet
 
-    #     # Create a list to store the images from different pages
-    #     image_pages = []
+        # Check if time is out of bounds
+        if time < 0 or time >= len(self.image_paths):
+            return
 
-    #     # Iterate over all pages in the TIFF file
-    #     for page in ImageSequence.Iterator(tiff_image):
-    #         # Convert the page to a NumPy array
-    #         page_array = np.array(page)
+        selected_image = self.image_paths[time]
+        print(f"Selected image at time {time}")
 
-    #         # Normalize the pixel values to the range [0, 1]
-    #         min_value = np.min(page_array)
-    #         max_value = np.max(page_array)
-    #         normalized_page_array = (page_array - min_value) / (max_value - min_value)
-
-    #         # Append the normalized page array to the list
-    #         image_pages.append(normalized_page_array)
-
-    #     # Set the current image based on the current_time variable
-    #     current_time_index = int(self.current_time.get())
-    #     if current_time_index < 0 or current_time_index >= len(image_pages):
-    #         return  # Handle the case when the specified time is out of bounds
-
-    #     self.image = image_pages[current_time_index].copy()  # Use the selected time index
-    #     self.original_photo = ImageTk.PhotoImage(tiff_image)
-    #     self.axis.imshow(self.image, cmap='gray')
-    #     self.canvas.draw_idle()
-    #     self.canvas.draw()
+    # Update the displayed image
+        self.image = np.array(selected_image) / 255.0  # Convert to array and normalize
+        self.original_photo = ImageTk.PhotoImage(selected_image)
+        self.axis.clear()
+        self.axis.imshow(self.image, cmap='gray')
+        self.canvas.draw_idle()
 
     def update_time_slider(self, max_time):
         self.time_slider.configure(to=max_time)
@@ -209,7 +242,7 @@ class ImageViewer(tk.Frame):
         
         # Print debug information
         print("Original Image Array:")
-        print(self.normalized_image_array)
+        #print(self.normalized_image_array)
         print("Brightness Value:", brightness_value)
         
         # Print the adjusted image array
@@ -218,24 +251,40 @@ class ImageViewer(tk.Frame):
         
         return image_brightened
     
-    def load_image_at_time(self, time):
-        if not self.image_paths:
-            return  # No images loaded yet
+    # def load_image_at_time(self, time):
+    #     print(f"Loading image at time: {time}")
+    #     if not self.image_paths:
+    #         return  # No images loaded yet
+            
+    #     # Check if time is out of bounds
+    #     if time < 0 or time >= len(self.image_paths):
+    #         return
 
-        if time < 0 or time >= len(self.image_paths):
-            return  # Handle the case when the specified time is out of bounds
+    #     selected_image_path = self.image_paths[time] #i dont this is selecting the image from the .tiff file
+    #     print(f"Selected image path: {selected_image_path}")
 
-        selected_image_path = self.image_paths[time]
-        self.load_image(selected_image_path)
+    #     # Load the selected image path and update the displayed image
+    #     self.load_image(selected_image_path)
+
+    #     # Update the image slider value to the selected time
+    #     self.image_slider.set(time)
         
     def update_image_slider(self, *args):
         # You can implement logic here to handle scrolling through images
         # Example: Load the image at the selected time point
-        selected_time = int(self.current_time.get())
-        print("Selected Time:", selected_time)
+        ##### selected_time = int(self.current_time.get())
+        #### total_images = len(self.image_paths)
+        selected_time = int(self.image_slider.get())
+        print(f"Select time: {selected_time}")
+        # total_images = len(self.image_paths)
+        self.display_image_at_time(selected_time)
+
+        # Update the parameters label with the current values
+        #self.update_parameters_label(selected_time=selected_time, total_images=total_images)
+
         # Load the image based on the selected time
         # Call the appropriate method to load the image at the selected time
-        self.load_image_at_time(selected_time)
+        #self.load_image_at_time(selected_time)
     
     def reset_image(self):
         # Reset the image to its original state
@@ -335,16 +384,6 @@ class ImageViewer(tk.Frame):
         # Update the parameters label with the current values
         parameters_text = f"Contrast: {contrast}\nBrightness: {brightness}\nThreshold Min: {threshold_min}\nThreshold Max: {threshold_max}  "
         self.parameters_label.config(text=parameters_text)
-    
-    def update_displayed_image(self):
-        # Update the displayed image using Matplotlib
-        if self.color_mode == 'inverted':
-            displayed_image = 1 - self.image
-        else:
-            displayed_image = self.image
-
-        self.axis.imshow(displayed_image, cmap='gray')
-        self.canvas.draw_idle()
 
     def change_color(self):
         # Change the color mode between 'grayscale' and 'inverted'

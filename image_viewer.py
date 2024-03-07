@@ -114,9 +114,13 @@ class ImageViewer(tk.Frame):
     
         self.image = self.normalized_image_array[int(self.current_time.get())].copy()  # Create a copy for editing
         self.original_photo = ImageTk.PhotoImage(self.original_image)
-        self.axis.imshow(self.image, cmap='gray')
-        self.canvas.draw_idle()
-        self.canvas.draw()
+        # self.axis.imshow(self.image, cmap='gray')
+        # self.canvas.draw_idle()
+        # self.canvas.draw()
+        self.update_displayed_image()
+        
+        # Initialize images_for_temporal_averaging list with the first image
+        self.images_for_temporal_averaging = [self.normalized_image_array]
 
     # def load_image(self, image_path):
     # # Open the TIFF file

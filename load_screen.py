@@ -80,7 +80,7 @@ class LoadScreen(Frame):
         if file_path:
             if not file_path.lower().endswith(('.tiff', '.tif')):
                 messagebox.showwarning("Warning", "Please select a TIFF file.")
-            return
+                return
 
             self.selected_file = file_path
     

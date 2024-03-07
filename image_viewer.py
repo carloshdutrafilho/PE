@@ -269,7 +269,7 @@ class ImageViewer(tk.Frame):
         end_time = min(start_time + self.window_size, len(self.image_paths))
 
         images_to_average = [np.array(Image.open(self.image_paths[i])) for i in range(start_time, end_time)]
-        images_to_average = np.array(images_to_average) / 255.0  # Normalize pixel values to [0, 1]
+        
 
         # Update the list of images for temporal averaging
         self.images_for_temporal_averaging = images_to_average

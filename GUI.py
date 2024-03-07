@@ -18,20 +18,6 @@ class GUI(tk.Toplevel):
         
         # Initialize image viewer
         self.image_viewer = None
-
-        # Initialize image viewer
-        #self.image_viewer = ImageViewer(self)
-        #self.image_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        # Create an instance of MainScreen
-        ##self.main_screen = MainScreen(self)
-        ##self.main_screen.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-        # !!!!!""
-
-        # Container for File Explorer, Image Viewer, and Data/Graph Viewers
-        ## main_container = tk.Frame(self)
-        ## main_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         
         # Container for File Explorer, Image Viewer, and Data/Graph Viewers
         main_container = tk.PanedWindow(self, orient=tk.HORIZONTAL, sashwidth=5, sashrelief=tk.SUNKEN)
@@ -65,19 +51,6 @@ class GUI(tk.Toplevel):
         data_graph_frame.add(self.graph_viewer, minsize=100)  # Set minimum size
         
         self.load_screen = LoadScreen(self.master, app=self, image_viewer=self.image_viewer)
-
-        
-        # Data and Graph Viewers
-        #data_graph_frame = tk.Frame(main_container, bg='white')
-        #data_graph_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        # Data Viewer
-        #self.data_viewer = DataViewer(data_graph_frame)
-        #self.data_viewer.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        
-        # Graph Viewer
-        #self.graph_viewer = GraphViewer(data_graph_frame)
-        #self.graph_viewer.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         
         # Create a menu bar
         menubar = tk.Menu(self)
@@ -120,7 +93,6 @@ class GUI(tk.Toplevel):
 
         self.config(menu=menubar)
     
-        
         # Variable to track night mode
         self.night_mode = tk.BooleanVar()
         self.night_mode.set(False)

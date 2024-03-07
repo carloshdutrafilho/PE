@@ -15,7 +15,7 @@ class ImageViewer(tk.Frame):
         self.current_time.set(0)
         
         # Placeholder image
-        self.placeholder_image = Image.new("RGB", (500, 450), "lightgray")
+        self.placeholder_image = Image.new("RGB", (400, 350), "lightgray")
         self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
         
         # Create a container for the image and parameters
@@ -33,8 +33,10 @@ class ImageViewer(tk.Frame):
         self.parameters_label.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
         
         # Color change button
+        self.color_mode = 'grayscale'
         self.color_change_button = tk.Button(self.image_container, text="Change Color", command=self.change_color)
         self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+        self.is_color_changed = False
         
         # Initialize image_paths attribute
         self.image_paths = []
@@ -90,16 +92,24 @@ class ImageViewer(tk.Frame):
     def load_image(self, image_path):
         # Load and display image using Matplotlib
         self.original_image = Image.open(image_path)
+        image_width, image_height = self.original_image.size
+        
+       # Placeholder image
+        self.placeholder_image = Image.new("RGB", (image_width, image_height), "lightgray")
+        self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
+
+        # Create a container for the image and parameters with the image dimensions
+        self.image_container = tk.Frame(self, width=image_width, height=image_height)
+        self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True) 
 
         # Convert the original image to a NumPy array
         self.original_image_array = np.array(self.original_image)
 
-        ##
         # Normalize the pixel values to the range [0, 1]
         min_value = np.min(self.original_image_array)
         max_value = np.max(self.original_image_array)
         self.normalized_image_array = (self.original_image_array - min_value) / (max_value - min_value)
-        ##
+
         # Check the shape of the normalized image array
         if len(self.normalized_image_array.shape) == 2:
             # If the array is 2D, keep it as is
@@ -116,16 +126,10 @@ class ImageViewer(tk.Frame):
             # Handle the case where the displayed image has incorrect dimensions
             print("Error: Incorrect dimensions after reshaping.")
             return
-
-        print(displayed_image.shape)
         
         self.axis.imshow(displayed_image, cmap='gray')  # Display the reshaped 2D image
         self.canvas.draw_idle()
-        
-        # self.original_photo = ImageTk.PhotoImage(self.original_image)
-        # self.axis.imshow(self.image, cmap='gray')
-        # self.canvas.draw_idle()
-        # self.canvas.draw()
+
         self.update_displayed_image()
         
         # Initialize images_for_temporal_averaging list with the first image
@@ -363,12 +367,16 @@ class ImageViewer(tk.Frame):
         
     def apply_color_mode(self, image):
         # Apply the selected color mode to the image
-        if self.color_mode == 'inverted':
+        if self.color_mode == 'inverted' and self.is_color_changed:
             return 1.0 - image.reshape(self.original_image_array.shape)  # Reshape to the original shape
         else:
             return image
 
     def change_color(self):
-        self.color_mode = 'inverted' if self.color_mode == 'grayscale' else 'grayscale'
+        #self.color_mode = 'inverted' if self.color_mode == 'grayscale' else 'grayscale'
+        #self.update_displayed_image()
+        #self.color_change_button.pack(side=tk.TOP, anchor=tk.NE, padx=10, pady=10)  # Pack the button again    
+        self.is_color_changed = not self.is_color_changed
+        self.color_mode = 'inverted' if self.is_color_changed else 'grayscale'
         self.update_displayed_image()
-        self.color_change_button.pack(side=tk.TOP, anchor=tk.NE, padx=10, pady=10)  # Pack the button again    
+        self.color_change_button.config(text="Change Color" if not self.is_color_changed else "Revert Color")

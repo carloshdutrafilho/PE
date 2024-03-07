@@ -84,6 +84,14 @@ class ImageViewer(tk.Frame):
         self.segmentation_button = tk.Button(self.image_container, command=self.toggle_segmentation_mode, image=segmentation_photo, compound="left")
         self.segmentation_button.image = segmentation_photo  # Keep a reference
         self.segmentation_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+        
+        # Chart button with icon
+        chart_icon = Image.open("chart.png")
+        chart_icon = chart_icon.resize((20, 20), Image.LANCZOS)
+        chart_photo = ImageTk.PhotoImage(chart_icon)
+        self.chart_button = tk.Button(self.image_container, command=self.generate_chart, image=chart_photo, compound="left")
+        self.chart_button.image = chart_photo  # Keep a reference
+        self.chart_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
 
         # Segmentation variables
         self.segmentation_mode_enabled = False
@@ -162,10 +170,8 @@ class ImageViewer(tk.Frame):
         self.image_container = tk.Frame(self, width=image_width, height=image_height)
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True) 
 
-        #Iterate over all pages in the TIFF file
-        for page in ImageSequence.Iterator(tiff_image):
-            # # Convert the page to a NumPy array
-            # page_array = np.array(page)
+        # Convert the original image to a NumPy array
+        self.original_image_array = np.array(self.original_image)
 
         # Normalize the pixel values to the range [0, 1]
         min_value = np.min(self.original_image_array)
@@ -284,7 +290,7 @@ class ImageViewer(tk.Frame):
         
         # Print debug information
         print("Original Image Array:")
-        #print(self.normalized_image_array)
+        print(self.normalized_image_array)
         print("Brightness Value:", brightness_value)
         
         # Print the adjusted image array
@@ -293,40 +299,24 @@ class ImageViewer(tk.Frame):
         
         return image_brightened
     
-    # def load_image_at_time(self, time):
-    #     print(f"Loading image at time: {time}")
-    #     if not self.image_paths:
-    #         return  # No images loaded yet
-            
-    #     # Check if time is out of bounds
-    #     if time < 0 or time >= len(self.image_paths):
-    #         return
+    def load_image_at_time(self, time):
+        if not self.image_paths:
+            return  # No images loaded yet
 
-    #     selected_image_path = self.image_paths[time] #i dont this is selecting the image from the .tiff file
-    #     print(f"Selected image path: {selected_image_path}")
+        if time < 0 or time >= len(self.image_paths):
+            return  # Handle the case when the specified time is out of bounds
 
-    #     # Load the selected image path and update the displayed image
-    #     self.load_image(selected_image_path)
-
-    #     # Update the image slider value to the selected time
-    #     self.image_slider.set(time)
+        selected_image_path = self.image_paths[time]
+        self.load_image(selected_image_path)
         
     def update_image_slider(self, *args):
         # You can implement logic here to handle scrolling through images
         # Example: Load the image at the selected time point
-        ##### selected_time = int(self.current_time.get())
-        #### total_images = len(self.image_paths)
-        selected_time = int(self.image_slider.get())
-        print(f"Select time: {selected_time}")
-        # total_images = len(self.image_paths)
-        self.display_image_at_time(selected_time)
-
-        # Update the parameters label with the current values
-        #self.update_parameters_label(selected_time=selected_time, total_images=total_images)
-
+        selected_time = int(self.current_time.get())
+        print("Selected Time:", selected_time)
         # Load the image based on the selected time
         # Call the appropriate method to load the image at the selected time
-        #self.load_image_at_time(selected_time)
+        self.load_image_at_time(selected_time)
     
     def reset_image(self):
         # Reset the image to its original state
@@ -555,11 +545,11 @@ class ImageViewer(tk.Frame):
         if self.segmentation_mode_enabled:
             # Clear previous segment points
             self.segment_points = []
-            self.segmentation_button.config(text="Stop Segmentation")
+            self.segmentation_button.config(text="Stop")
         else:
             # Process segments and update the displayed image
             self.process_segments()
-            self.segmentation_button.config(text="Start Segmentation")
+            self.segmentation_button.config(text="Start")
 
     def on_segment_click(self, event):
         # Check if segmentation mode is enabled
@@ -586,3 +576,18 @@ class ImageViewer(tk.Frame):
         # Draw the closed segment on the displayed image
         self.axis.plot(segment_points_array[:, 0], segment_points_array[:, 1], 'r-')
         self.canvas.draw()
+        
+    def generate_chart(self):
+        # Generate a chart based on the points from the segmentation
+        if len(self.segment_points) < 3:
+            return  # At least 3 points needed to form a chart
+
+        # Extract x and y coordinates from segment points
+        x_coordinates, y_coordinates = zip(*self.segment_points)
+
+        # Create a scatter plot using Matplotlib
+        plt.scatter(x_coordinates, y_coordinates, color='blue')
+        plt.title("Chart Generated from Segmentation Points")
+        plt.xlabel("X-coordinate")
+        plt.ylabel("Y-coordinate")
+        plt.show()

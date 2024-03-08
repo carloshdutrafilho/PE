@@ -139,13 +139,14 @@ class ImageViewer(tk.Frame):
         # Threshold adjustment
         self.threshold_min_label = tk.Label(self.parameters_container, text="Min Threshold=")
         self.threshold_min_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.threshold_min_slider = ttk.Scale(self.parameters_container, from_=0, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
+        self.threshold_min_slider = ttk.Scale(self.parameters_container, from_=0, to=0.98, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_min_slider.pack(side=tk.LEFT, padx=10, pady=10)
 
         self.threshold_max_label = tk.Label(self.parameters_container, text="Max Threshold=")
         self.threshold_max_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.threshold_max_slider = ttk.Scale(self.parameters_container, from_=0, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
+        self.threshold_max_slider = ttk.Scale(self.parameters_container, from_=00.2, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_max_slider.pack(side=tk.LEFT, padx=10, pady=10)
+        self.threshold_max_slider.set(1)
         
         # Temporal averaging variables
         self.window_size = 1  # Initial window size
@@ -380,6 +381,15 @@ class ImageViewer(tk.Frame):
         #self.threshold_min_value_label.config(text=f"Threshold Min: {threshold_min}")
         #self.threshold_max_value_label.config(text=f"Threshold Max: {threshold_max}")
 
+        if threshold_min >= threshold_max:
+            # Adjust the values to ensure threshold_min is always less than threshold_max
+            threshold_max = max(threshold_max, threshold_min + 0.01)  # Adjust threshold_max to be slightly higher than threshold_min
+            self.threshold_max_slider.set(threshold_max)  # Update the slider value
+        if threshold_max <= threshold_min:
+            # Adjust the values to ensure threshold_max is always greater than threshold_min
+            threshold_min = min(threshold_min, threshold_max - 0.01)  # Adjust threshold_min to be slightly lower than threshold_max
+            self.threshold_min_slider.set(threshold_min)  # Update the slider value
+            
         # Update the parameters label with the current values
         self.update_parameters_label(threshold_min=threshold_min, threshold_max=threshold_max)
 

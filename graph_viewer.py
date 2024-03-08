@@ -18,7 +18,7 @@ class GraphViewer(tk.Frame):
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         self.color_mode = 'grayscale'
-        self.plot_button = tk.Button(self.image_container, text="Plot graph", command=lambda: self.plot_data('C:\\Users\\tombo\\PE\\Git\\PE\\dataset2.csv'))
+        self.plot_button = tk.Button(self.image_container, text="Plot graph", command=lambda: self.plot_data('dataset2.csv'))
         self.plot_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
         self.is_color_changed = False
     

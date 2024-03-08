@@ -634,9 +634,9 @@ class ImageViewer(tk.Frame):
             return None
     
 
-    def write_to_csv(self,data, csv_filename='C:\\Users\\tombo\\PE\\Git\\PE\\dataset2'):
-        # Write to the CSV file
-        with open(f"{csv_filename}.csv", mode='w', newline='') as csv_file:
+    def write_to_csv(self, data, csv_filename='dataset2.csv'):
+    # Write to the CSV file
+        with open(csv_filename, mode='w', newline='') as csv_file:
             writer = csv.writer(csv_file)
 
             # Write data from lists

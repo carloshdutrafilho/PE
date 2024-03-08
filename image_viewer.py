@@ -9,6 +9,9 @@ from PIL import ImageSequence
 import matplotlib.pyplot as plt
 from tkinter import PhotoImage
 import tifffile 
+import imageio
+import csv
+
 
 class ImageViewer(tk.Frame):
     def __init__(self, master):
@@ -89,6 +92,7 @@ class ImageViewer(tk.Frame):
         self.segmentation_button = tk.Button(self.image_container, command=self.toggle_segmentation_mode, image=segmentation_photo, compound="left")
         self.segmentation_button.image = segmentation_photo  # Keep a reference
         self.segmentation_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+
         
         # Chart button with icon
         chart_icon = Image.open("chart.png")
@@ -100,7 +104,10 @@ class ImageViewer(tk.Frame):
 
         # Segmentation variables
         self.segmentation_mode_enabled = False
-        self.segment_points = []
+        self.segment_x_points = []
+        self.segment_y_points = []
+        self.x_in = []
+        self.y_in = []
 
         # Bind event for segmentation
         self.canvas.mpl_connect('button_press_event', self.on_segment_click)
@@ -521,44 +528,123 @@ class ImageViewer(tk.Frame):
             
             
     # SEGMENTATION
+    # SEGMENTATION
     def toggle_segmentation_mode(self):
         # Toggle the segmentation mode on/off
         self.segmentation_mode_enabled = not self.segmentation_mode_enabled
 
         if self.segmentation_mode_enabled:
             # Clear previous segment points
-            self.segment_points = []
-            self.segmentation_button.config(text="Stop")
+            self.segment_x_points = []
+            self.segment_y_points = []
+            self.segmentation_button.config(text="Stop Segmentation")
         else:
             # Process segments and update the displayed image
             self.process_segments()
-            self.segmentation_button.config(text="Start")
-
+            self.segmentation_button.config(text="Start Segmentation")
+ 
     def on_segment_click(self, event):
         # Check if segmentation mode is enabled
         if not self.segmentation_mode_enabled:
             return
 
         # Add the clicked point to the segment points
-        self.segment_points.append((event.xdata, event.ydata))
+        self.segment_x_points.append(event.xdata)
+        self.segment_y_points.append(event.ydata)
 
         # Draw a red dot at the clicked point
         self.axis.plot(event.xdata, event.ydata, 'ro')
         self.canvas.draw()
 
     def process_segments(self):
-        if len(self.segment_points) < 3:
+        if len(self.segment_x_points) < 3:
             return  # At least 3 points needed to form a segment
 
         # Add the first point to the end to create a closed segment
-        self.segment_points.append(self.segment_points[0])
+        self.segment_x_points.append(self.segment_x_points[0])
+        self.segment_y_points.append(self.segment_y_points[0])
 
         # Convert segment points to NumPy array
-        segment_points_array = np.array(self.segment_points)
+        segment_x_array = np.array(self.segment_x_points)
+        segment_y_array = np.array(self.segment_y_points)
 
         # Draw the closed segment on the displayed image
-        self.axis.plot(segment_points_array[:, 0], segment_points_array[:, 1], 'r-')
+        self.axis.plot(segment_x_array, segment_y_array, 'r-')
         self.canvas.draw()
+
+        # Afficher les coordonnées
+        print("Coordonnées x des sommets du polygone :", segment_x_array)
+        print("Coordonnées y des sommets du polygone :", segment_y_array)
+        self.list_in()
+        
+        self.write_to_csv([[list(range(1, len(self.mean_over_time())))],[self.mean_over_time()[:-1]]])# retrait dernier element : pb de shpae : 1830 et 1831
+
+    def in_polygon(self, test):
+        x, y = test
+        nb_corners = len(self.segment_x_points)
+        i, j = nb_corners - 1, nb_corners - 1
+        odd_nodes = False
+        for i in range(nb_corners):
+            if (self.segment_y_points[i] < y and self.segment_y_points[j] >= y) or (self.segment_y_points[j] < y and self.segment_y_points[i] >= y):
+                if (self.segment_x_points[i] + (y - self.segment_y_points[i]) / (self.segment_y_points[j] - self.segment_y_points[i]) * (self.segment_x_points[j] - self.segment_x_points[i]) < x):
+                    odd_nodes = not odd_nodes
+            j = i
+        return odd_nodes
+    
+    def list_in(self):
+        left = int(min(self.segment_x_points))  # Pixels inside the polygon are inside a known square
+        right = int(max(self.segment_x_points))
+        top = int(max(self.segment_y_points))
+        bot = int(min(self.segment_y_points))
+        res_x = []
+        res_y = []
+        for x in range(left, right, 1):
+            for y in range(bot, top, 1):
+                if self.in_polygon((x, y)):
+                    res_x.append(x)
+                    res_y.append(y)
+        self.x_in=res_x
+        self.y_in=res_y
+
+    def mean(self,image):
+        out = 0
+        for i in range(0, len(self.x_in)):
+            out += image[self.y_in[i]][self.x_in[i]]
+        out = out / len(self.x_in)
+        return out
+    
+    def mean_over_time(self):
+        try:
+            # Lire toutes les images du fichier TIFF
+            images = imageio.volread('C:\\Users\\tombo\\Downloads\\220728-S2_04_500mV.ome.tiff')
+            print("Nbr d'images :",(len(images[1])))# canal vert ou rouge, jsp
+            # Initialiser une liste pour stocker les moyennes au fil du temps
+            mean_values = []
+
+            # Parcourir toutes les images et calculer la moyenne des valeurs des pixels
+            for image in images[0]:
+                mean_value = self.mean(image)
+                mean_values.append(mean_value)
+
+            # Retourner la liste des moyennes au fil du temps
+            return mean_values
+
+        except Exception as e:
+            print("Error calculating mean over time:", e)
+            return None
+    
+
+    def write_to_csv(self,data, csv_filename='C:\\Users\\tombo\\PE\\Git\\PE\\dataset2'):
+        # Write to the CSV file
+        with open(f"{csv_filename}.csv", mode='w', newline='') as csv_file:
+            writer = csv.writer(csv_file)
+
+            # Write data from lists
+            for row in data:
+                writer.writerow(row)
+
+        print(f"Data written to '{csv_filename}.csv' successfully.")
+
         
     def generate_chart(self):
         # Generate a chart based on the points from the segmentation

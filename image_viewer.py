@@ -600,4 +600,5 @@ class ImageViewer(tk.Frame):
         plt.title("Chart Generated from Segmentation Points")
         plt.xlabel("X-coordinate")
         plt.ylabel("Y-coordinate")
+        plt.gca().invert_yaxis()
         plt.show()

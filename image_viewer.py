@@ -367,7 +367,7 @@ class ImageViewer(tk.Frame):
         self.update_parameters_label(threshold_min=threshold_min, threshold_max=threshold_max)
 
         # Apply threshold adjustment
-        thresholded_image = self.threshold(self.image, threshold_min, threshold_max)
+        thresholded_image = self.threshold(self.normalized_image_array, threshold_min, threshold_max)
 
         # Update the displayed image using Matplotlib
         self.axis.imshow(thresholded_image, cmap='gray')
@@ -573,4 +573,5 @@ class ImageViewer(tk.Frame):
         plt.title("Chart Generated from Segmentation Points")
         plt.xlabel("X-coordinate")
         plt.ylabel("Y-coordinate")
+        plt.gca().invert_yaxis()
         plt.show()

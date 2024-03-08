@@ -8,6 +8,7 @@ import numpy as np
 from PIL import ImageSequence
 import matplotlib.pyplot as plt
 from tkinter import PhotoImage
+import tifffile
 
 class ImageViewer(tk.Frame):
     def __init__(self, master):
@@ -15,6 +16,7 @@ class ImageViewer(tk.Frame):
 
         self.current_time = tk.DoubleVar()
         self.current_time.set(0)
+        self.normalized_image_array = np.array([])
         
         # Placeholder image
         self.placeholder_image = Image.new("RGB", (400, 350), "lightgray")
@@ -160,8 +162,9 @@ class ImageViewer(tk.Frame):
 
     def load_image(self, image_path):
         # Load and display image using Matplotlib
-        self.original_image = Image.open(image_path)
-        image_width, image_height = self.original_image.size
+        imstack = tifffile.imread(image_path)
+        self.original_image = imstack[1,0,:,:]
+        image_width, image_height = 512,519
         
        # Placeholder image
         self.placeholder_image = Image.new("RGB", (image_width, image_height), "lightgray")
@@ -394,7 +397,7 @@ class ImageViewer(tk.Frame):
         self.update_parameters_label(threshold_min=threshold_min, threshold_max=threshold_max)
 
         # Apply threshold adjustment
-        thresholded_image = self.threshold(self.image, threshold_min, threshold_max)
+        thresholded_image = self.threshold(self.normalized_image_array, threshold_min, threshold_max)
 
         # Update the displayed image using Matplotlib
         self.axis.imshow(thresholded_image, cmap='gray')

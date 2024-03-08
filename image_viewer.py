@@ -8,6 +8,7 @@ import numpy as np
 from PIL import ImageSequence
 import matplotlib.pyplot as plt
 from tkinter import PhotoImage
+import tifffile 
 
 class ImageViewer(tk.Frame):
     def __init__(self, master):
@@ -15,6 +16,10 @@ class ImageViewer(tk.Frame):
 
         self.current_time = tk.DoubleVar()
         self.current_time.set(0)
+
+        #Image array
+        self.normalized_image_array = np.array([])
+        self.selected_index = 0
         
         # Placeholder image
         self.placeholder_image = Image.new("RGB", (400, 350), "lightgray")
@@ -84,6 +89,14 @@ class ImageViewer(tk.Frame):
         self.segmentation_button = tk.Button(self.image_container, command=self.toggle_segmentation_mode, image=segmentation_photo, compound="left")
         self.segmentation_button.image = segmentation_photo  # Keep a reference
         self.segmentation_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+        
+        # Chart button with icon
+        chart_icon = Image.open("chart.png")
+        chart_icon = chart_icon.resize((20, 20), Image.LANCZOS)
+        chart_photo = ImageTk.PhotoImage(chart_icon)
+        self.chart_button = tk.Button(self.image_container, command=self.generate_chart, image=chart_photo, compound="left")
+        self.chart_button.image = chart_photo  # Keep a reference
+        self.chart_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
 
         # Segmentation variables
         self.segmentation_mode_enabled = False
@@ -98,11 +111,8 @@ class ImageViewer(tk.Frame):
         # Set initial zoom level
         self.current_zoom_level = 1.0
         
-        # Initialize image_paths attribute
-        self.image_paths = []
-        
         # Slider for scrolling through images/Time
-        self.image_slider = ttk.Scale(self, from_=0, to=len(self.image_paths)-1, variable=self.current_time, orient=tk.HORIZONTAL, command=self.update_image_slider)
+        self.image_slider = ttk.Scale(self, from_=0, to=len(self.normalized_image_array)-1, variable=self.current_time, orient=tk.HORIZONTAL, command=self.update_image_slider)
         self.image_slider.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
         
         # Create a container for parameters and sliders
@@ -131,13 +141,14 @@ class ImageViewer(tk.Frame):
         # Threshold adjustment
         self.threshold_min_label = tk.Label(self.parameters_container, text="Min Threshold=")
         self.threshold_min_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.threshold_min_slider = ttk.Scale(self.parameters_container, from_=0, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
+        self.threshold_min_slider = ttk.Scale(self.parameters_container, from_=0, to=0.98, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_min_slider.pack(side=tk.LEFT, padx=10, pady=10)
 
         self.threshold_max_label = tk.Label(self.parameters_container, text="Max Threshold=")
         self.threshold_max_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.threshold_max_slider = ttk.Scale(self.parameters_container, from_=0, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
+        self.threshold_max_slider = ttk.Scale(self.parameters_container, from_=00.2, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_max_slider.pack(side=tk.LEFT, padx=10, pady=10)
+        self.threshold_max_slider.set(1)
         
         # Temporal averaging variables
         self.window_size = 1  # Initial window size
@@ -152,18 +163,23 @@ class ImageViewer(tk.Frame):
     def load_image(self, image_path):
         # Load and display image using Matplotlib
         self.original_image = Image.open(image_path)
+        print("Original Image:", self.original_image.size)
+        print("Original Image Array:", np.array(self.original_image).shape)
         image_width, image_height = self.original_image.size
         
        # Placeholder image
         self.placeholder_image = Image.new("RGB", (image_width, image_height), "lightgray")
         self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
-
+   
         # Create a container for the image and parameters with the image dimensions
         self.image_container = tk.Frame(self, width=image_width, height=image_height)
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True) 
 
         # Convert the original image to a NumPy array
-        self.original_image_array = np.array(self.original_image)
+        self.original_image_array = np.asarray(self.original_image)
+        print("Original Image Array:", self.original_image_array.shape)
+        print("Array size: ", len(self.original_image_array))
+
 
         # Normalize the pixel values to the range [0, 1]
         min_value = np.min(self.original_image_array)
@@ -195,36 +211,6 @@ class ImageViewer(tk.Frame):
         # Initialize images_for_temporal_averaging list with the first image
         self.images_for_temporal_averaging = [self.normalized_image_array]
 
-    # def load_image(self, image_path):
-    # # Open the TIFF file
-    #     tiff_image = Image.open(image_path)
-
-    #     # Create a list to store the images from different pages
-    #     image_pages = []
-
-    #     # Iterate over all pages in the TIFF file
-    #     for page in ImageSequence.Iterator(tiff_image):
-    #         # Convert the page to a NumPy array
-    #         page_array = np.array(page)
-
-    #         # Normalize the pixel values to the range [0, 1]
-    #         min_value = np.min(page_array)
-    #         max_value = np.max(page_array)
-    #         normalized_page_array = (page_array - min_value) / (max_value - min_value)
-
-    #         # Append the normalized page array to the list
-    #         image_pages.append(normalized_page_array)
-
-    #     # Set the current image based on the current_time variable
-    #     current_time_index = int(self.current_time.get())
-    #     if current_time_index < 0 or current_time_index >= len(image_pages):
-    #         return  # Handle the case when the specified time is out of bounds
-
-    #     self.image = image_pages[current_time_index].copy()  # Use the selected time index
-    #     self.original_photo = ImageTk.PhotoImage(tiff_image)
-    #     self.axis.imshow(self.image, cmap='gray')
-    #     self.canvas.draw_idle()
-    #     self.canvas.draw()
 
     def update_time_slider(self, max_time):
         self.time_slider.configure(to=max_time)
@@ -291,24 +277,20 @@ class ImageViewer(tk.Frame):
         
         return image_brightened
     
-    def load_image_at_time(self, time):
-        if not self.image_paths:
+    def load_image_at_index(self, time):
+        if not self.normalized_image_array.any():
             return  # No images loaded yet
 
-        if time < 0 or time >= len(self.image_paths):
+        if time < 0 or time >= len(self.normalized_image_array):
             return  # Handle the case when the specified time is out of bounds
 
-        selected_image_path = self.image_paths[time]
-        self.load_image(selected_image_path)
+        selected_image_path = self.normalized_image_array[time]
+        self.update_displayed_image()
         
     def update_image_slider(self, *args):
-        # You can implement logic here to handle scrolling through images
-        # Example: Load the image at the selected time point
-        selected_time = int(self.current_time.get())
-        print("Selected Time:", selected_time)
-        # Load the image based on the selected time
-        # Call the appropriate method to load the image at the selected time
-        self.load_image_at_time(selected_time)
+        self.selected_index = int(self.image_slider.get())
+        print("Selected Index:", self.selected_index)
+        self.update_displayed_image(self.selected_index)
     
     def reset_image(self):
         # Reset the image to its original state
@@ -372,11 +354,20 @@ class ImageViewer(tk.Frame):
         #self.threshold_min_value_label.config(text=f"Threshold Min: {threshold_min}")
         #self.threshold_max_value_label.config(text=f"Threshold Max: {threshold_max}")
 
+        if threshold_min >= threshold_max:
+            # Adjust the values to ensure threshold_min is always less than threshold_max
+            threshold_max = max(threshold_max, threshold_min + 0.01)  # Adjust threshold_max to be slightly higher than threshold_min
+            self.threshold_max_slider.set(threshold_max)  # Update the slider value
+        if threshold_max <= threshold_min:
+            # Adjust the values to ensure threshold_max is always greater than threshold_min
+            threshold_min = min(threshold_min, threshold_max - 0.01)  # Adjust threshold_min to be slightly lower than threshold_max
+            self.threshold_min_slider.set(threshold_min)  # Update the slider value
+            
         # Update the parameters label with the current values
         self.update_parameters_label(threshold_min=threshold_min, threshold_max=threshold_max)
 
         # Apply threshold adjustment
-        thresholded_image = self.threshold(self.image, threshold_min, threshold_max)
+        thresholded_image = self.threshold(self.normalized_image_array, threshold_min, threshold_max)
 
         # Update the displayed image using Matplotlib
         self.axis.imshow(thresholded_image, cmap='gray')
@@ -410,16 +401,16 @@ class ImageViewer(tk.Frame):
         parameters_text = f"Contrast: {contrast}\nBrightness: {brightness}\nThreshold Min: {threshold_min}\nThreshold Max: {threshold_max}  "
         self.parameters_label.config(text=parameters_text)
     
-    def update_displayed_image(self):
-        # Update the displayed image using Matplotlib
-        #if self.color_mode == 'inverted':
-         #   displayed_image = 1 - self.image
+    def update_displayed_image(self, index=None):
+        #Update the displayed image using Matplotlib
+        #f self.color_mode == 'inverted':
+        #   displayed_image = 1 - self.image
         #else:
-         #   displayed_image = self.image
+        #   displayed_image = self.image
 
         #self.axis.imshow(displayed_image, cmap='gray')
         #self.canvas.draw_idle()
-        # Get the original image shape
+        #Get the original image shape
         original_shape = self.original_image_array.shape
 
         # Reshape the image to its original shape
@@ -537,11 +528,11 @@ class ImageViewer(tk.Frame):
         if self.segmentation_mode_enabled:
             # Clear previous segment points
             self.segment_points = []
-            self.segmentation_button.config(text="Stop Segmentation")
+            self.segmentation_button.config(text="Stop")
         else:
             # Process segments and update the displayed image
             self.process_segments()
-            self.segmentation_button.config(text="Start Segmentation")
+            self.segmentation_button.config(text="Start")
 
     def on_segment_click(self, event):
         # Check if segmentation mode is enabled
@@ -568,3 +559,19 @@ class ImageViewer(tk.Frame):
         # Draw the closed segment on the displayed image
         self.axis.plot(segment_points_array[:, 0], segment_points_array[:, 1], 'r-')
         self.canvas.draw()
+        
+    def generate_chart(self):
+        # Generate a chart based on the points from the segmentation
+        if len(self.segment_points) < 3:
+            return  # At least 3 points needed to form a chart
+
+        # Extract x and y coordinates from segment points
+        x_coordinates, y_coordinates = zip(*self.segment_points)
+
+        # Create a scatter plot using Matplotlib
+        plt.scatter(x_coordinates, y_coordinates, color='blue')
+        plt.title("Chart Generated from Segmentation Points")
+        plt.xlabel("X-coordinate")
+        plt.ylabel("Y-coordinate")
+        plt.gca().invert_yaxis()
+        plt.show()

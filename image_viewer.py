@@ -3,6 +3,7 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 import os
 from matplotlib.figure import Figure
+from matplotlib.widgets import Slider
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
 from PIL import ImageSequence
@@ -164,15 +165,20 @@ class ImageViewer(tk.Frame):
         # Keep a reference to the original image for reset functionality
         self.original_image = None
         self.image = None
+        self.red_images = None
+        self.green_images = None
         self.color_mode = 'grayscale'  # Initial color mode
+        self.current_index = 0 #Index for Slider
         self.reset_image()
 
     def load_image(self, image_path):
         # Load and display image using Matplotlib
-        self.original_image = Image.open(image_path)
-        print("Original Image:", self.original_image.size)
-        print("Original Image Array:", np.array(self.original_image).shape)
-        image_width, image_height = self.original_image.size
+        #s#######elf.original_image = Image.open(image_path)
+        self.original_image = tifffile.imread(image_path)
+        print("Original Image:", self.original_image.shape)
+        image_width, image_height = self.original_image[0,0].shape
+        self.red_images = np.copy(self.original_image[1])
+        self.green_images = np.copy(self.original_image[0])
         
        # Placeholder image
         self.placeholder_image = Image.new("RGB", (image_width, image_height), "lightgray")
@@ -183,40 +189,57 @@ class ImageViewer(tk.Frame):
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True) 
 
         # Convert the original image to a NumPy array
-        self.original_image_array = np.asarray(self.original_image)
-        print("Original Image Array:", self.original_image_array.shape)
-        print("Array size: ", len(self.original_image_array))
+        ########self.original_image_array = np.asarray(self.original_image)
+        # print("Original Image Array:", self.original_image_array.shape)
+        # print("Array size: ", len(self.original_image_array))
 
 
         # Normalize the pixel values to the range [0, 1]
-        min_value = np.min(self.original_image_array)
-        max_value = np.max(self.original_image_array)
-        self.normalized_image_array = (self.original_image_array - min_value) / (max_value - min_value)
+        # min_value = np.min(self.original_image)
+        # max_value = np.max(self.original_image)
+        # self.normalized_image_array = (self.original_image[1] - min_value) / (max_value - min_value)
+        min_value_red = np.min(self.red_images)
+        max_value_red = np.max(self.red_images)
+        self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
+        min_value_green = np.min(self.original_image)
+        max_value_green = np.max(self.original_image)
+        self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
 
         # Check the shape of the normalized image array
-        if len(self.normalized_image_array.shape) == 2:
+        if len(self.normalized_image_array_red.shape) == 2:
             # If the array is 2D, keep it as is
-            self.image = self.normalized_image_array.copy()
-        elif len(self.normalized_image_array.shape) == 3:
+            self.image = self.normalized_image_array_red.copy()
+        elif len(self.normalized_image_array_red.shape) == 3:
             # If the array is 3D (RGB), convert it to grayscale
-            self.image = np.mean(self.normalized_image_array, axis=-1).copy()
+            self.image = np.mean(self.normalized_image_array_red, axis=-1).copy()
         
         # Reshape the 3D array to 2D for display
-        displayed_image = self.image.reshape(self.image.shape[0], self.image.shape[1])
+        # ###########displayed_image = self.image.reshape(self.image.shape[0], self.image.shape[1])
 
-        # Check if the displayed image has the correct shape
-        if displayed_image.shape[0] == 0 or displayed_image.shape[1] == 0:
-            # Handle the case where the displayed image has incorrect dimensions
-            print("Error: Incorrect dimensions after reshaping.")
-            return
+        # # Check if the displayed image has the correct shape
+        # if displayed_image.shape[0] == 0 or displayed_image.shape[1] == 0:
+        #     # Handle the case where the displayed image has incorrect dimensions
+        #     print("Error: Incorrect dimensions after reshaping.")
+        #     return
         
-        self.axis.imshow(displayed_image, cmap='gray')  # Display the reshaped 2D image
-        self.canvas.draw_idle()
+        # self.axis.imshow(displayed_image, cmap='gray')  # Display the reshaped 2D image
+        # self.canvas.draw_idle()
+        
+        self.image_display = self.axis.imshow(self.normalized_image_array_red[self.current_index], cmap='gray')
 
+        # Add a slider to scroll through images
+        ax_slider = self.figure.add_axes([0.2, 0.05, 0.65, 0.03])
+        self.slider = Slider(ax_slider, 'Image', 0, len(self.normalized_image_array_red), valinit=0)
+        self.slider.on_changed(self.update_image)
+
+    def update_image(self, value):
+        index = int(self.slider.val)
+        self.image_display.set_data(self.normalized_image_array_red[index])
+        self.canvas.draw_idle()
         self.update_displayed_image()
         
         # Initialize images_for_temporal_averaging list with the first image
-        self.images_for_temporal_averaging = [self.normalized_image_array]
+        self.images_for_temporal_averaging = [self.normalized_image_array_red]
 
 
     def update_time_slider(self, max_time):
@@ -285,13 +308,13 @@ class ImageViewer(tk.Frame):
         return image_brightened
     
     def load_image_at_index(self, time):
-        if not self.normalized_image_array.any():
+        if not self.normalized_image_array_red.any():
             return  # No images loaded yet
 
-        if time < 0 or time >= len(self.normalized_image_array):
+        if time < 0 or time >= len(self.normalized_image_array_red):
             return  # Handle the case when the specified time is out of bounds
 
-        selected_image_path = self.normalized_image_array[time]
+        selected_image_path = self.normalized_image_array_red[time]
         self.update_displayed_image()
         
     def update_image_slider(self, *args):
@@ -302,7 +325,7 @@ class ImageViewer(tk.Frame):
     def reset_image(self):
         # Reset the image to its original state
         if self.original_image:
-            self.image = self.normalized_image_array.copy()
+            self.image = self.normalized_image_array_red.copy()
             self.image_slider.set(0)
             self.contrast_slider.set(0)  # Update the contrast slider
             self.brightness_slider.set(0)  # Update the brightness slider
@@ -374,17 +397,17 @@ class ImageViewer(tk.Frame):
         self.update_parameters_label(threshold_min=threshold_min, threshold_max=threshold_max)
 
         # Apply threshold adjustment
-        thresholded_image = self.threshold(self.normalized_image_array, threshold_min, threshold_max)
+        thresholded_image = self.threshold( threshold_min, threshold_max)
 
         # Update the displayed image using Matplotlib
         self.axis.imshow(thresholded_image, cmap='gray')
         self.canvas.draw_idle()
 
-    def threshold(self, image, threshold_min, threshold_max):
+    def threshold(self, threshold_min, threshold_max):
         # Apply minimum and maximum thresholds to images
-        thresholded_image = np.copy(image)
-        thresholded_image[image < threshold_min] = 0  # Set values below the min threshold to 0
-        thresholded_image[image > threshold_max] = 1  # Set values above the max threshold to 0
+        thresholded_image = np.copy(self.normalized_image_array_red)
+        thresholded_image[thresholded_image < threshold_min] = 0  # Set values below the min threshold to 0
+        thresholded_image[thresholded_image > threshold_max] = 1  # Set values above the max threshold to 0
         
         return thresholded_image 
     
@@ -418,7 +441,7 @@ class ImageViewer(tk.Frame):
         #self.axis.imshow(displayed_image, cmap='gray')
         #self.canvas.draw_idle()
         #Get the original image shape
-        original_shape = self.original_image_array.shape
+        original_shape = self.original_image[0,0].shape
 
         # Reshape the image to its original shape
         displayed_image = self.image.reshape(original_shape)
@@ -440,7 +463,7 @@ class ImageViewer(tk.Frame):
     def apply_color_mode(self, image):
         # Apply the selected color mode to the image
         if self.color_mode == 'inverted' and self.is_color_changed:
-            return 1.0 - image.reshape(self.original_image_array.shape)  # Reshape to the original shape
+            return 1.0 - image.reshape(self.original_image[0,0].shape)  # Reshape to the original shape
         else:
             return image
 

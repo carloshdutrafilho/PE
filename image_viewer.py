@@ -14,9 +14,11 @@ import imageio
 import csv
 
 
-class ImageViewer(tk.Frame):
+class ImageViewer(ttk.Frame):
     def __init__(self, master):
         super().__init__(master)
+
+        self.data_viewer = None
 
         self.current_time = tk.DoubleVar()
         self.current_time.set(0)
@@ -30,7 +32,7 @@ class ImageViewer(tk.Frame):
         self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
         
         # Create a container for the image and parameters
-        self.image_container = tk.Frame(self)
+        self.image_container = ttk.Frame(self)
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         # Create a Matplotlib figure and axis for image display
@@ -45,7 +47,7 @@ class ImageViewer(tk.Frame):
         
         # Color change button
         self.color_mode = 'grayscale'
-        self.color_change_button = tk.Button(self.image_container, text="Change Color", command=self.change_color)
+        self.color_change_button = ttk.Button(self.image_container, text="Change Color", command=self.change_color)
         self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
         self.is_color_changed = False
         
@@ -75,12 +77,12 @@ class ImageViewer(tk.Frame):
         self.zoom_out_icon = ImageTk.PhotoImage(zoom_out_image)
         
         # Zoom in button
-        self.zoom_in_button = tk.Button(self.image_container, image=self.zoom_in_icon, command=self.toggle_zoom_mode)
+        self.zoom_in_button = ttk.Button(self.image_container, image=self.zoom_in_icon, command=self.toggle_zoom_mode)
         self.zoom_in_button.image = self.zoom_in_icon  # Keep a reference
         self.zoom_in_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
 
         # Zoom out button
-        self.zoom_out_button = tk.Button(self.image_container, image=self.zoom_out_icon, command=self.zoom_out)
+        self.zoom_out_button = ttk.Button(self.image_container, image=self.zoom_out_icon, command=self.zoom_out)
         self.zoom_out_button.image = self.zoom_out_icon  # Keep a reference
         self.zoom_out_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
         
@@ -90,16 +92,15 @@ class ImageViewer(tk.Frame):
         segmentation_icon = segmentation_icon.resize((20, 20), Image.LANCZOS)
         segmentation_photo = ImageTk.PhotoImage(segmentation_icon)
 
-        self.segmentation_button = tk.Button(self.image_container, command=self.toggle_segmentation_mode, image=segmentation_photo, compound="left")
+        self.segmentation_button = ttk.Button(self.image_container, command=self.toggle_segmentation_mode, image=segmentation_photo, compound="left")
         self.segmentation_button.image = segmentation_photo  # Keep a reference
         self.segmentation_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
-
         
         # Chart button with icon
         chart_icon = Image.open("chart.png")
         chart_icon = chart_icon.resize((20, 20), Image.LANCZOS)
         chart_photo = ImageTk.PhotoImage(chart_icon)
-        self.chart_button = tk.Button(self.image_container, command=self.generate_chart, image=chart_photo, compound="left")
+        self.chart_button = ttk.Button(self.image_container, command=self.generate_chart, image=chart_photo, compound="left")
         self.chart_button.image = chart_photo  # Keep a reference
         self.chart_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
 
@@ -120,39 +121,39 @@ class ImageViewer(tk.Frame):
         self.current_zoom_level = 1.0
         
         # Slider for scrolling through images/Time
-        self.image_slider = ttk.Scale(self, from_=0, to=len(self.normalized_image_array)-1, variable=self.current_time, orient=tk.HORIZONTAL, command=self.update_image_slider)
-        self.image_slider.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
+        #self.image_slider = ttk.Scale(self, from_=0, to=len(self.normalized_image_array)-1, variable=self.current_time, orient=tk.HORIZONTAL, command=self.update_image_slider)
+        #self.image_slider.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
         
         # Create a container for parameters and sliders
-        self.parameters_container = tk.Frame(self)
+        self.parameters_container = ttk.Frame(self)
         self.parameters_container.pack(side=tk.BOTTOM, pady=10)
         
         # Add entry widgets for parameters
-        self.moyennage_label = tk.Label(self.parameters_container, text="Temp. averaging=")
+        self.moyennage_label = ttk.Label(self.parameters_container, text="Temp. averaging=")
         self.moyennage_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.moyennage_entry = tk.Entry(self.parameters_container, width=10)
+        self.moyennage_entry = ttk.Entry(self.parameters_container, width=10)
         self.moyennage_entry.pack(side=tk.LEFT, padx=10, pady=10)
         self.moyennage_entry.bind("<Return>", self.temporal_averaging)
 
         # Contrast adjustment
-        self.contrast_label = tk.Label(self.parameters_container, text="Contrast=")
+        self.contrast_label = ttk.Label(self.parameters_container, text="Contrast=")
         self.contrast_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.contrast_slider = ttk.Scale(self.parameters_container, from_=0, to=100, orient=tk.HORIZONTAL, command=self.update_contrast)
         self.contrast_slider.pack(side=tk.LEFT, padx=10, pady=10)
         
         # Brightness adjustment
-        self.brightness_label = tk.Label(self.parameters_container, text="Brightness=")
+        self.brightness_label = ttk.Label(self.parameters_container, text="Brightness=")
         self.brightness_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.brightness_slider = ttk.Scale(self.parameters_container, from_=-100, to=100, orient=tk.HORIZONTAL, command=self.update_brightness)
         self.brightness_slider.pack(side=tk.LEFT, padx=10, pady=10)
 
         # Threshold adjustment
-        self.threshold_min_label = tk.Label(self.parameters_container, text="Min Threshold=")
+        self.threshold_min_label = ttk.Label(self.parameters_container, text="Min Threshold=")
         self.threshold_min_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.threshold_min_slider = ttk.Scale(self.parameters_container, from_=0, to=0.98, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_min_slider.pack(side=tk.LEFT, padx=10, pady=10)
 
-        self.threshold_max_label = tk.Label(self.parameters_container, text="Max Threshold=")
+        self.threshold_max_label = ttk.Label(self.parameters_container, text="Max Threshold=")
         self.threshold_max_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.threshold_max_slider = ttk.Scale(self.parameters_container, from_=00.2, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_max_slider.pack(side=tk.LEFT, padx=10, pady=10)
@@ -171,11 +172,14 @@ class ImageViewer(tk.Frame):
         self.current_index = 0 #Index for Slider
         self.reset_image()
 
+    def set_data_viewer(self, data_viewer):
+        self.data_viewer = data_viewer
+
     def load_image(self, image_path):
         # Load and display image using Matplotlib
-        #s#######elf.original_image = Image.open(image_path)
+        #self.original_image = Image.open(image_path)
         self.original_image = tifffile.imread(image_path)
-        print("Original Image:", self.original_image.shape)
+        #print("Original Image:", self.original_image.shape)
         image_width, image_height = self.original_image[0,0].shape
         self.red_images = np.copy(self.original_image[1])
         self.green_images = np.copy(self.original_image[0])
@@ -189,15 +193,15 @@ class ImageViewer(tk.Frame):
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True) 
 
         # Convert the original image to a NumPy array
-        ########self.original_image_array = np.asarray(self.original_image)
+        #self.original_image_array = np.asarray(self.original_image)
         # print("Original Image Array:", self.original_image_array.shape)
         # print("Array size: ", len(self.original_image_array))
 
 
         # Normalize the pixel values to the range [0, 1]
-        # min_value = np.min(self.original_image)
-        # max_value = np.max(self.original_image)
-        # self.normalized_image_array = (self.original_image[1] - min_value) / (max_value - min_value)
+        #min_value = np.min(self.original_image)
+        #max_value = np.max(self.original_image)
+        #self.normalized_image_array = (self.original_image - min_value) / (max_value - min_value)
         min_value_red = np.min(self.red_images)
         max_value_red = np.max(self.red_images)
         self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
@@ -214,7 +218,7 @@ class ImageViewer(tk.Frame):
             self.image = np.mean(self.normalized_image_array_red, axis=-1).copy()
         
         # Reshape the 3D array to 2D for display
-        # ###########displayed_image = self.image.reshape(self.image.shape[0], self.image.shape[1])
+        #displayed_image = self.image.reshape(self.normalized_image_array.shape)
 
         # # Check if the displayed image has the correct shape
         # if displayed_image.shape[0] == 0 or displayed_image.shape[1] == 0:
@@ -222,11 +226,11 @@ class ImageViewer(tk.Frame):
         #     print("Error: Incorrect dimensions after reshaping.")
         #     return
         
-        # self.axis.imshow(displayed_image, cmap='gray')  # Display the reshaped 2D image
-        # self.canvas.draw_idle()
+        #self.axis.imshow(self.normalized_image_array, cmap='gray')  # Display the reshaped 2D image
+        #self.canvas.draw_idle()
         
         self.image_display = self.axis.imshow(self.normalized_image_array_red[self.current_index], cmap='gray')
-
+        #self.image_display = self.axis.imshow(self.normalized_image_array)
         # Add a slider to scroll through images
         ax_slider = self.figure.add_axes([0.2, 0.05, 0.65, 0.03])
         self.slider = Slider(ax_slider, 'Image', 0, len(self.normalized_image_array_red), valinit=0)
@@ -549,8 +553,6 @@ class ImageViewer(tk.Frame):
             self.zoom_start_y = None
             self.zoom_rect = None
             
-            
-    # SEGMENTATION
     # SEGMENTATION
     def toggle_segmentation_mode(self):
         # Toggle the segmentation mode on/off
@@ -579,6 +581,29 @@ class ImageViewer(tk.Frame):
         self.axis.plot(event.xdata, event.ydata, 'ro')
         self.canvas.draw()
 
+    # def process_segments(self):
+    #     if len(self.segment_x_points) < 3:
+    #         return  # At least 3 points needed to form a segment
+
+    #     # Add the first point to the end to create a closed segment
+    #     self.segment_x_points.append(self.segment_x_points[0])
+    #     self.segment_y_points.append(self.segment_y_points[0])
+
+    #     # Convert segment points to NumPy array
+    #     segment_x_array = np.array(self.segment_x_points)
+    #     segment_y_array = np.array(self.segment_y_points)
+
+    #     # Draw the closed segment on the displayed image
+    #     self.axis.plot(segment_x_array, segment_y_array, 'r-')
+    #     self.canvas.draw()
+
+    #     # Afficher les coordonnées
+    #     print("Coordonnées x des sommets du polygone :", segment_x_array)
+    #     print("Coordonnées y des sommets du polygone :", segment_y_array)
+    #     self.list_in()
+        
+    #     self.write_to_csv([[list(range(1, len(self.mean_over_time())))],[self.mean_over_time()[:-1]]])# retrait dernier element : pb de shpae : 1830 et 1831
+
     def process_segments(self):
         if len(self.segment_x_points) < 3:
             return  # At least 3 points needed to form a segment
@@ -591,16 +616,21 @@ class ImageViewer(tk.Frame):
         segment_x_array = np.array(self.segment_x_points)
         segment_y_array = np.array(self.segment_y_points)
 
-        # Draw the closed segment on the displayed image
-        self.axis.plot(segment_x_array, segment_y_array, 'r-')
-        self.canvas.draw()
-
-        # Afficher les coordonnées
-        print("Coordonnées x des sommets du polygone :", segment_x_array)
-        print("Coordonnées y des sommets du polygone :", segment_y_array)
+        # Get coordinates of points inside the polygon
         self.list_in()
-        
-        self.write_to_csv([[list(range(1, len(self.mean_over_time())))],[self.mean_over_time()[:-1]]])# retrait dernier element : pb de shpae : 1830 et 1831
+
+        # Calculate mean over time for the segment
+        mean_values = self.mean_over_time()
+
+        # Create a data structure with relevant information
+        segment_data = {
+            'segment_x_array': segment_x_array,
+            'segment_y_array': segment_y_array,
+            'mean_values': mean_values,
+        }
+
+        # Pass the data to the DataViewer
+        self.data_viewer.process_segment_data(segment_data)
 
     def in_polygon(self, test):
         x, y = test
@@ -639,7 +669,7 @@ class ImageViewer(tk.Frame):
     def mean_over_time(self):
         try:
             # Lire toutes les images du fichier TIFF
-            images = imageio.volread('C:\\Users\\tombo\\Downloads\\220728-S2_04_500mV.ome.tiff')
+            images = imageio.volread('C:\\Users\\carlo\\Downloads\\transfer_6891262_files_d43c2e32\\220728-S2_04_500mV.ome.tiff')
             print("Nbr d'images :",(len(images[1])))# canal vert ou rouge, jsp
             # Initialiser une liste pour stocker les moyennes au fil du temps
             mean_values = []
@@ -656,18 +686,15 @@ class ImageViewer(tk.Frame):
             print("Error calculating mean over time:", e)
             return None
     
+    # def write_to_csv(self, data, csv_filename='dataset2.csv'):
+    # # Write to the CSV file
+    #     with open(csv_filename, mode='w', newline='') as csv_file:
+    #         writer = csv.writer(csv_file)
 
-    def write_to_csv(self, data, csv_filename='dataset2.csv'):
-    # Write to the CSV file
-        with open(csv_filename, mode='w', newline='') as csv_file:
-            writer = csv.writer(csv_file)
-
-            # Write data from lists
-            for row in data:
-                writer.writerow(row)
-
-        print(f"Data written to '{csv_filename}.csv' successfully.")
-
+    #         # Write data from lists
+    #         for row in data:
+    #             writer.writerow(row)
+    #     print(f"Data written to '{csv_filename}.csv' successfully.")
         
     def generate_chart(self):
         # Generate a chart based on the points from the segmentation

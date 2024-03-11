@@ -17,6 +17,8 @@ class LoadScreen(Frame):
         # Ajustando o tamanho inicial da janela
         self.master.geometry("335x250")  # Substitua pelos valores desejados
 
+        self.project_path = None
+
         # Frame principal
         self.main_frame = ttk.Frame(self)
         self.main_frame.pack(expand=True, fill="both")
@@ -93,24 +95,24 @@ class LoadScreen(Frame):
             if not os.path.exists(default_directory):
                 os.makedirs(default_directory)
         
-            project_path = os.path.join(default_directory, project_name)
+            self.project_path = os.path.join(default_directory, project_name)
 
-            while os.path.exists(project_path):
+            while os.path.exists(self.project_path):
                 if not project_name:
                     new_project_name = askstring("Invalid Project Name", f"The project needs a name. Please enter a new name: ")
                 else:
                     new_project_name = askstring("Invalid Project Name", f"A project with the name '{project_name}' already exists. Please enter a new name:")
                 project_name = new_project_name
-                project_path = os.path.join(default_directory, project_name)
+                self.project_path = os.path.join(default_directory, project_name)
 
-            os.makedirs(project_path)
+            os.makedirs(self.project_path)
 
-            identification_file_path = os.path.join(project_path, "identification.txt")
+            identification_file_path = os.path.join(self.project_path, "identification.txt")
             with open(identification_file_path, "w") as identification_file:
                 identification_file.write(f"Project: {project_name}")
                 identification_file.write(f"\nPath-{file_path}")
 
-            print(f"Project folder created: {project_path}")
+            print(f"Project folder created: {self.project_path}")
 
             self.image_viewer.load_image(file_path)
 
@@ -158,3 +160,5 @@ class LoadScreen(Frame):
         else:
             messagebox.showwarning("Warning", "No folder selected.")
 
+    def get_project_path(self):
+        return self.project_path

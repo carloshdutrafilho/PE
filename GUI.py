@@ -27,6 +27,9 @@ class GUI(tk.Toplevel):
         self.msg["font"] = ("Verdana", "12", "bold")
         #self.msg.pack()
         #main_container.add(self.msg, minsize=100)  # Set minimum size
+
+        # Project path
+        self.project_path = None
         
         # File Explorer
         file_explorer_frame = FileViewer(main_container, image_viewer=self.image_viewer)
@@ -43,7 +46,8 @@ class GUI(tk.Toplevel):
         main_container.add(data_graph_frame, minsize=100)  # Set minimum size
 
         # Data Viewer
-        self.data_viewer = DataViewer(data_graph_frame)
+        self.data_viewer = DataViewer(data_graph_frame, self)
+        self.image_viewer.set_data_viewer(self.data_viewer)
         data_graph_frame.add(self.data_viewer, minsize=100)  # Set minimum size
 
         # Graph Viewer
@@ -101,7 +105,10 @@ class GUI(tk.Toplevel):
         self.bind_shortcuts()
         
         # List to store recently used files
-        self.recent_files = []  
+        self.recent_files = [] 
+
+    def get_project_path(self):
+        return self.load_screen.get_project_path()
 
     def bind_shortcuts(self):
         self.bind("<Control-U>", lambda event: self.open_file())

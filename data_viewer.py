@@ -17,6 +17,7 @@ class DataViewer(ttk.Frame):
         # Add vertical scrollbar
         scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.tree.yview)
         scrollbar.pack(side=tk.RIGHT, fill='y')
+        print("This point is reached")
 
         self.tree.configure(yscroll=scrollbar.set)
 

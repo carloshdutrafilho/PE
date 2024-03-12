@@ -44,10 +44,22 @@ class ImageViewer(ttk.Frame):
         # Label to display current parameters
         self.parameters_label = tk.Label(self.image_container, text="Contrast: 0\nBrightness: 0\nThreshold Min: 0\nThreshold Max: 0  ", bd=1, relief=tk.SOLID, width=20, height=4)
         self.parameters_label.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
-        
+
+        self.selected_channel = 2
+        # Red channel button
+        self.color_mode = 'gray'
+        self.color_change_button = tk.Button(self.image_container, text="Red Channel", command=self.select_red_channel)
+        self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+        self.is_color_changed = False
+
+        # Green channel button
+        self.color_mode = 'gray'
+        self.color_change_button = tk.Button(self.image_container, text="Green Channel", command=self.select_green_channel)
+        self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+        self.is_color_changed = False
         # Color change button
-        self.color_mode = 'grayscale'
-        self.color_change_button = ttk.Button(self.image_container, text="Change Color", command=self.change_color)
+        self.color_mode = 'gray'
+        self.color_change_button = tk.Button(self.image_container, text="Change Color", command=self.change_color)
         self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
         self.is_color_changed = False
         
@@ -168,9 +180,13 @@ class ImageViewer(ttk.Frame):
         self.image = None
         self.red_images = None
         self.green_images = None
-        self.color_mode = 'grayscale'  # Initial color mode
+        self.color_mode = 'gray'  # Initial color mode
         self.current_index = 0 #Index for Slider
         self.reset_image()
+        self.canaux = {}
+
+    def set_data_viewer(self, data_viewer):
+        self.data_viewer = data_viewer
 
     def set_data_viewer(self, data_viewer):
         self.data_viewer = data_viewer
@@ -191,7 +207,7 @@ class ImageViewer(ttk.Frame):
         # Create a container for the image and parameters with the image dimensions
         self.image_container = tk.Frame(self, width=image_width, height=image_height)
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True) 
-
+        
         # Convert the original image to a NumPy array
         #self.original_image_array = np.asarray(self.original_image)
         # print("Original Image Array:", self.original_image_array.shape)
@@ -205,10 +221,16 @@ class ImageViewer(ttk.Frame):
         min_value_red = np.min(self.red_images)
         max_value_red = np.max(self.red_images)
         self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
-        min_value_green = np.min(self.original_image)
-        max_value_green = np.max(self.original_image)
+        min_value_green = np.min(self.green_images)
+        max_value_green = np.max(self.green_images)
         self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
 
+        self.canaux = {0: self.normalized_image_array_green,
+                        1: self.normalized_image_array_red}
+        del self.original_image
+        del self.red_images
+        del self.green_images
+        
         # Check the shape of the normalized image array
         if len(self.normalized_image_array_red.shape) == 2:
             # If the array is 2D, keep it as is
@@ -226,6 +248,13 @@ class ImageViewer(ttk.Frame):
         #     print("Error: Incorrect dimensions after reshaping.")
         #     return
         
+        # self.axis.imshow(displayed_image, cmap='gray')  # Display the reshaped 2D image
+        # self.canvas.draw_idle()
+        if self.selected_channel == 1:
+            self.image_display = self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
+        if self.selected_channel == 2:
+            self.image_display = self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
+
         #self.axis.imshow(self.normalized_image_array, cmap='gray')  # Display the reshaped 2D image
         #self.canvas.draw_idle()
         
@@ -233,17 +262,22 @@ class ImageViewer(ttk.Frame):
         #self.image_display = self.axis.imshow(self.normalized_image_array)
         # Add a slider to scroll through images
         ax_slider = self.figure.add_axes([0.2, 0.05, 0.65, 0.03])
-        self.slider = Slider(ax_slider, 'Image', 0, len(self.normalized_image_array_red), valinit=0)
+        self.slider = Slider(ax_slider, 'Image', 0, self.canaux[1].shape[0], valinit=0)
+        print(self.canaux[1].shape[0])
         self.slider.on_changed(self.update_image)
 
-    def update_image(self, value):
-        index = int(self.slider.val)
-        self.image_display.set_data(self.normalized_image_array_red[index])
-        self.canvas.draw_idle()
+    def update_image(self,value = None):
+        self.current_index = int(self.slider.val)
+        if self.selected_channel == 1:
+            self.image_display.set_data(self.canaux[0][self.current_index])
+        if self.selected_channel == 2: 
+            self.image_display.set_data(self.canaux[1][self.current_index])
+        
+        
         self.update_displayed_image()
         
         # Initialize images_for_temporal_averaging list with the first image
-        self.images_for_temporal_averaging = [self.normalized_image_array_red]
+        self.images_for_temporal_averaging = [self.canaux[1]]
 
 
     def update_time_slider(self, max_time):
@@ -266,17 +300,21 @@ class ImageViewer(ttk.Frame):
         self.update_parameters_label(contrast=contrast)
         
         # Apply contrast adjustment
-        contrasted_image = self.contrast(self.image, contrast)
+        ##############################contrasted_image = self.contrast(self.image, contrast)
+        self.contrast(contrast)
+        self.update_displayed_image()
 
-        # Update the displayed image using Matplotlib
-        self.axis.imshow(contrasted_image, cmap='gray')
-        self.canvas.draw_idle()
+        # Update the displayed image using Matplotlib------------------------
+        # self.axis.imshow(contrasted_image, cmap='gray')
+        # self.canvas.draw_idle()
 
-    def contrast(self, image, value_contrast):
+    def contrast(self, value_contrast):
         # Calculate the contrasted image by multiplying by the contrast value
-        image_contrasted = np.clip(image * (1.0 + value_contrast), 0, 1)  # Normalize to [0, 1]
+        if self.selected_channel == 1:
+            self.canaux[0][self.current_index] = np.clip(self.normalized_image_array_green[self.current_index] * (1.0 + value_contrast), 0, 1)  # Normalize to [0, 1]
+        elif self.selected_channel == 2:
+            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] * (1.0 + value_contrast), 0, 1)  # Normalize to [0, 1]
 
-        return image_contrasted
     
     def update_brightness(self, *args):
         # Get brightness value from the slider
@@ -289,27 +327,31 @@ class ImageViewer(ttk.Frame):
         self.update_parameters_label(brightness=brightness)
         
         # Apply brightness adjustment
-        brightened_image = self.brightness(self.image, brightness)
-
+        # brightened_image = self.brightness(self.image, brightness)
+        self.brightness(brightness)
+        self.update_displayed_image()
         # Update the displayed image using Matplotlib
-        self.axis.imshow(brightened_image, cmap='gray')
-        self.canvas.draw_idle()
+        # self.axis.imshow(brightened_image, cmap='gray')
+        # self.canvas.draw_idle()
 
-    def brightness(self, image, brightness_value):
+    def brightness(self, brightness_value):
     
         # Calculate the image with adjusted brightness by adding the brightness value
-        image_brightened = np.clip(image + brightness_value / 255, 0, 1)  # Normalize to [0, 1]
+        #image_brightened = np.clip(image + brightness_value / 255, 0, 1)  # Normalize to [0, 1]
+        if self.selected_channel == 1:
+            self.canaux[0][self.current_index] =  np.clip(self.normalized_image_array_green[self.current_index] + brightness_value / 100, 0, 1)  # Normalize to [0, 1]
+        elif self.selected_channel == 2:
+            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] + brightness_value / 100, 0, 1)  # Normalize to [0, 1]
+        # # Print debug information
+        # print("Original Image Array:")
+        # print(self.normalized_image_array)
+        # print("Brightness Value:", brightness_value)
         
-        # Print debug information
-        print("Original Image Array:")
-        print(self.normalized_image_array)
-        print("Brightness Value:", brightness_value)
+        # # Print the adjusted image array
+        # print("Brightened Image Array:")
+        # print(image_brightened)
         
-        # Print the adjusted image array
-        print("Brightened Image Array:")
-        print(image_brightened)
-        
-        return image_brightened
+        # return image_brightened
     
     def load_image_at_index(self, time):
         if not self.normalized_image_array_red.any():
@@ -321,7 +363,7 @@ class ImageViewer(ttk.Frame):
         selected_image_path = self.normalized_image_array_red[time]
         self.update_displayed_image()
         
-    def update_image_slider(self, *args):
+    def update_image_slider(self):
         self.selected_index = int(self.image_slider.get())
         print("Selected Index:", self.selected_index)
         self.update_displayed_image(self.selected_index)
@@ -409,7 +451,7 @@ class ImageViewer(ttk.Frame):
 
     def threshold(self, threshold_min, threshold_max):
         # Apply minimum and maximum thresholds to images
-        thresholded_image = np.copy(self.normalized_image_array_red)
+        thresholded_image = np.copy(self.canaux[1])
         thresholded_image[thresholded_image < threshold_min] = 0  # Set values below the min threshold to 0
         thresholded_image[thresholded_image > threshold_max] = 1  # Set values above the max threshold to 0
         
@@ -435,7 +477,7 @@ class ImageViewer(ttk.Frame):
         parameters_text = f"Contrast: {contrast}\nBrightness: {brightness}\nThreshold Min: {threshold_min}\nThreshold Max: {threshold_max}  "
         self.parameters_label.config(text=parameters_text)
     
-    def update_displayed_image(self, index=None):
+    def update_displayed_image(self):
         #Update the displayed image using Matplotlib
         #f self.color_mode == 'inverted':
         #   displayed_image = 1 - self.image
@@ -445,8 +487,14 @@ class ImageViewer(ttk.Frame):
         #self.axis.imshow(displayed_image, cmap='gray')
         #self.canvas.draw_idle()
         #Get the original image shape
-        original_shape = self.original_image[0,0].shape
-
+        
+        if self.selected_channel == 1:
+            self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
+            
+        if self.selected_channel == 2:
+            self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
+        self.canvas.draw_idle()
+        """ ---------------------------------------------------------------------------
         # Reshape the image to its original shape
         displayed_image = self.image.reshape(original_shape)
 
@@ -462,21 +510,30 @@ class ImageViewer(ttk.Frame):
         # displayed_image = self.apply_color_mode(self.image)
         # Update the displayed image using Matplotlib
         self.axis.imshow(resized_image, cmap='gray')
+
         self.canvas.draw_idle()
-        
+        """
     def apply_color_mode(self, image):
         # Apply the selected color mode to the image
-        if self.color_mode == 'inverted' and self.is_color_changed:
+        if self.color_mode == 'gray_r' and self.is_color_changed:
             return 1.0 - image.reshape(self.original_image[0,0].shape)  # Reshape to the original shape
         else:
             return image
+        
+    def select_green_channel(self):
+        self.selected_channel = 1
+        self.update_image()
+
+    def select_red_channel(self):
+        self.selected_channel = 2
+        self.update_image()
 
     def change_color(self):
         #self.color_mode = 'inverted' if self.color_mode == 'grayscale' else 'grayscale'
         #self.update_displayed_image()
         #self.color_change_button.pack(side=tk.TOP, anchor=tk.NE, padx=10, pady=10)  # Pack the button again    
         self.is_color_changed = not self.is_color_changed
-        self.color_mode = 'inverted' if self.is_color_changed else 'grayscale'
+        self.color_mode = 'gray_r' if self.is_color_changed else 'gray'
         self.update_displayed_image()
         self.color_change_button.config(text="Change Color" if not self.is_color_changed else "Revert Color")
         

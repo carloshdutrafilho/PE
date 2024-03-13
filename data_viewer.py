@@ -57,12 +57,11 @@ class DataViewer(ttk.Frame):
         segment_x_array = segment_data['segment_x_array']
         segment_y_array = segment_data['segment_y_array']
         mean_values = segment_data['mean_values']
-
         # Convert x and y arrays to a list of coordinate pairs
         coordinates = [(x, y) for x, y in zip(segment_x_array, segment_y_array)]
 
         # Display the segment data in the table
-        means_data = (list(range(1, len(mean_values))), mean_values[:-1])
+        means_data = (list(range(0, len(mean_values))), mean_values)
 
         # Atualize o número total de páginas
         self.total_pages = len(mean_values) // self.page_size + 1

@@ -19,6 +19,7 @@ class ImageViewer(ttk.Frame):
         super().__init__(master)
 
         self.data_viewer = None
+        self.graph_viewer=None
 
         self.current_time = tk.DoubleVar()
         self.current_time.set(0)
@@ -27,6 +28,8 @@ class ImageViewer(ttk.Frame):
         self.normalized_image_array = np.array([])
         self.selected_index = 0
         
+        self.normalized_image_array_red = np.array([])
+
         # Placeholder image
         self.placeholder_image = Image.new("RGB", (400, 350), "lightgray")
         self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
@@ -36,7 +39,7 @@ class ImageViewer(ttk.Frame):
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         # Create a Matplotlib figure and axis for image display
-        self.figure = Figure(figsize=(6, 6))
+        self.figure = Figure(figsize=(5, 5))
         self.axis = self.figure.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.figure, master=self.image_container)
         self.canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -122,6 +125,8 @@ class ImageViewer(ttk.Frame):
         self.segment_y_points = []
         self.x_in = []
         self.y_in = []
+        self.listes_graphs=[]
+        self.id_color=-1 
 
         # Bind event for segmentation
         self.canvas.mpl_connect('button_press_event', self.on_segment_click)
@@ -195,6 +200,9 @@ class ImageViewer(ttk.Frame):
     def set_data_viewer(self, data_viewer):
         self.data_viewer = data_viewer
 
+    def set_graph_viewer(self, graph_viewer):
+        self.graph_viewer = graph_viewer
+
     def load_image(self, image_path):
         # Load and display image using Matplotlib
         #self.original_image = Image.open(image_path)
@@ -263,7 +271,7 @@ class ImageViewer(ttk.Frame):
         #self.canvas.draw_idle()
         
         self.image_display = self.axis.imshow(self.normalized_image_array_red[self.current_index], cmap='gray')
-        #self.image_display = self.axis.imshow(self.normalized_image_array)
+        #self.image_display = self.axis.imshow(self.original_image)
         # Add a slider to scroll through images
         ax_slider = self.figure.add_axes([0.2, 0.05, 0.65, 0.03])
         self.slider = Slider(ax_slider, 'Image', 0, self.canaux[1].shape[0]-1, valinit=0)
@@ -627,6 +635,7 @@ class ImageViewer(ttk.Frame):
 
         if self.segmentation_mode_enabled:
             # Clear previous segment points
+            self.update_color()
             self.segment_x_points = []
             self.segment_y_points = []
             self.segmentation_button.config(text="Stop Segmentation")
@@ -635,7 +644,10 @@ class ImageViewer(ttk.Frame):
             self.process_segments()
             self.segmentation_button.config(text="Start Segmentation")
  
+ 
     def on_segment_click(self, event):
+        marker_styles = ['b.', 'g.', 'r.', 'c.', 'm.', 'y.', 'k.', 'w.']
+
         # Check if segmentation mode is enabled
         if not self.segmentation_mode_enabled:
             return
@@ -645,7 +657,7 @@ class ImageViewer(ttk.Frame):
         self.segment_y_points.append(event.ydata)
 
         # Draw a red dot at the clicked point
-        self.axis.plot(event.xdata, event.ydata, 'ro')
+        self.axis.plot(event.xdata, event.ydata, marker_styles[self.id_color])
         self.canvas.draw()
 
     # def process_segments(self):
@@ -669,9 +681,10 @@ class ImageViewer(ttk.Frame):
     #     print("Coordonnées y des sommets du polygone :", segment_y_array)
     #     self.list_in()
         
-    #     self.write_to_csv([[list(range(1, len(self.mean_over_time())))],[self.mean_over_time()[:-1]]])# retrait dernier element : pb de shpae : 1830 et 1831
+    #     self.write_to_csv([[list(range(0, len(self.mean_over_time())))],[self.mean_over_time()]])# retrait dernier element : pb de shpae : 1830 et 1831
 
     def process_segments(self):
+        color_styles = ['b-', 'g-', 'r-', 'c-', 'm-', 'y-', 'k-', 'w-']
         if len(self.segment_x_points) < 3:
             return  # At least 3 points needed to form a segment
 
@@ -682,6 +695,10 @@ class ImageViewer(ttk.Frame):
         # Convert segment points to NumPy array
         segment_x_array = np.array(self.segment_x_points)
         segment_y_array = np.array(self.segment_y_points)
+
+        # Draw the closed segment on the displayed image
+        self.axis.plot(segment_x_array, segment_y_array, color_styles[self.id_color])
+        self.canvas.draw()
 
         # Get coordinates of points inside the polygon
         self.list_in()
@@ -695,9 +712,18 @@ class ImageViewer(ttk.Frame):
             'segment_y_array': segment_y_array,
             'mean_values': mean_values,
         }
+        print(len(mean_values))
 
+        self.listes_graphs.append((segment_data['mean_values']))
         # Pass the data to the DataViewer
         self.data_viewer.process_segment_data(segment_data)
+
+        print('taille X : ', len(list(range(0, len(self.listes_graphs[0])))))
+        print('taille Y : ',len(self.listes_graphs[0])) 
+         # Pass the data to the GraphViewer
+        self.graph_viewer.process_to_graph(list(range(0, len(self.listes_graphs[0]))),self.listes_graphs)
+
+ 
 
     def in_polygon(self, test):
         x, y = test
@@ -736,7 +762,7 @@ class ImageViewer(ttk.Frame):
     def mean_over_time(self):
         try:
             # Lire toutes les images du fichier TIFF
-            images = imageio.volread('C:\\Users\\carlo\\Downloads\\transfer_6891262_files_d43c2e32\\220728-S2_04_500mV.ome.tiff')
+            images = imageio.volread(r'C:\Users\tombo\Downloads\220728-S2_04_500mV.ome.tiff')
             print("Nbr d'images :",(len(images[1])))# canal vert ou rouge, jsp
             # Initialiser une liste pour stocker les moyennes au fil du temps
             mean_values = []
@@ -752,6 +778,14 @@ class ImageViewer(ttk.Frame):
         except Exception as e:
             print("Error calculating mean over time:", e)
             return None
+        
+            
+    def update_color(self):
+        if self.id_color<7:
+            self.id_color+=1
+        else : 
+            self.id_color=0
+
     
     # def write_to_csv(self, data, csv_filename='dataset2.csv'):
     # # Write to the CSV file

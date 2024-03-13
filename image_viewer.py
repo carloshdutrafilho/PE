@@ -148,18 +148,22 @@ class ImageViewer(ttk.Frame):
         self.moyennage_entry.bind("<Return>", self.temporal_averaging)
 
         # Contrast adjustment
+        self.contrast_value = 0
         self.contrast_label = ttk.Label(self.parameters_container, text="Contrast=")
         self.contrast_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.contrast_slider = ttk.Scale(self.parameters_container, from_=0, to=100, orient=tk.HORIZONTAL, command=self.update_contrast)
         self.contrast_slider.pack(side=tk.LEFT, padx=10, pady=10)
         
         # Brightness adjustment
+        self.brightness_value = 0
         self.brightness_label = ttk.Label(self.parameters_container, text="Brightness=")
         self.brightness_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.brightness_slider = ttk.Scale(self.parameters_container, from_=-100, to=100, orient=tk.HORIZONTAL, command=self.update_brightness)
         self.brightness_slider.pack(side=tk.LEFT, padx=10, pady=10)
 
         # Threshold adjustment
+        self.threshold_min = 0
+        self.threshold_max = 1
         self.threshold_min_label = ttk.Label(self.parameters_container, text="Min Threshold=")
         self.threshold_min_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.threshold_min_slider = ttk.Scale(self.parameters_container, from_=0, to=0.98, orient=tk.HORIZONTAL, command=self.update_threshold)
@@ -262,7 +266,7 @@ class ImageViewer(ttk.Frame):
         #self.image_display = self.axis.imshow(self.normalized_image_array)
         # Add a slider to scroll through images
         ax_slider = self.figure.add_axes([0.2, 0.05, 0.65, 0.03])
-        self.slider = Slider(ax_slider, 'Image', 0, self.canaux[1].shape[0], valinit=0)
+        self.slider = Slider(ax_slider, 'Image', 0, self.canaux[1].shape[0]-1, valinit=0)
         print(self.canaux[1].shape[0])
         self.slider.on_changed(self.update_image)
 
@@ -291,62 +295,61 @@ class ImageViewer(ttk.Frame):
     
     def update_contrast(self, *args):
         # Get contrast value from the slider
-        contrast = round(self.contrast_slider.get() / 100.0, 2)  # Round to two decimal places
+        self.contrast_value = round(self.contrast_slider.get() / 100.0, 2)  # Round to two decimal places
 
         # Update the contrast label with the current value
         #self.contrast_value_label.config(text=f"Contrast: {contrast}")
         
         # Update the parameters label with the current values
-        self.update_parameters_label(contrast=contrast)
+        #self.update_parameters_label(contrast=self.contrast)
         
         # Apply contrast adjustment
         ##############################contrasted_image = self.contrast(self.image, contrast)
-        self.contrast(contrast)
+        self.contrast()
         self.update_displayed_image()
 
         # Update the displayed image using Matplotlib------------------------
         # self.axis.imshow(contrasted_image, cmap='gray')
         # self.canvas.draw_idle()
 
-    def contrast(self, value_contrast):
+    def contrast(self):
         # Calculate the contrasted image by multiplying by the contrast value
         if self.selected_channel == 1:
-            self.canaux[0][self.current_index] = np.clip(self.normalized_image_array_green[self.current_index] * (1.0 + value_contrast), 0, 1)  # Normalize to [0, 1]
+            self.canaux[0][self.current_index] = np.clip(self.normalized_image_array_green[self.current_index] * (1.0 + self.contrast_value), 0, 1)  # Normalize to [0, 1]
         elif self.selected_channel == 2:
-            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] * (1.0 + value_contrast), 0, 1)  # Normalize to [0, 1]
+            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] * (1.0 + self.contrast_value), 0, 1)  # Normalize to [0, 1]
 
     
     def update_brightness(self, *args):
         # Get brightness value from the slider
-        brightness = round(self.brightness_slider.get(), 2)  # Round to two decimal places
+        self.brightness_value = round(self.brightness_slider.get(), 2)  # Round to two decimal places
         
         # Update the brightness label with the current value
         #self.brightness_value_label.config(text=f"Brightness: {brightness}")
 
         # Update the parameters label with the current values
-        self.update_parameters_label(brightness=brightness)
+        #self.update_parameters_label(brightness=self.brightness)
         
         # Apply brightness adjustment
         # brightened_image = self.brightness(self.image, brightness)
-        self.brightness(brightness)
+        self.brightness()
         self.update_displayed_image()
         # Update the displayed image using Matplotlib
         # self.axis.imshow(brightened_image, cmap='gray')
         # self.canvas.draw_idle()
 
-    def brightness(self, brightness_value):
+    def brightness(self):
     
         # Calculate the image with adjusted brightness by adding the brightness value
         #image_brightened = np.clip(image + brightness_value / 255, 0, 1)  # Normalize to [0, 1]
         if self.selected_channel == 1:
-            self.canaux[0][self.current_index] =  np.clip(self.normalized_image_array_green[self.current_index] + brightness_value / 100, 0, 1)  # Normalize to [0, 1]
+            self.canaux[0][self.current_index] =  np.clip(self.normalized_image_array_green[self.current_index] + self.brightness_value/100, 0, 1)  # Normalize to [0, 1]
         elif self.selected_channel == 2:
-            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] + brightness_value / 100, 0, 1)  # Normalize to [0, 1]
+            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] + self.brightness_value/100, 0, 1)  # Normalize to [0, 1]
         # # Print debug information
         # print("Original Image Array:")
         # print(self.normalized_image_array)
         # print("Brightness Value:", brightness_value)
-        
         # # Print the adjusted image array
         # print("Brightened Image Array:")
         # print(image_brightened)
@@ -423,39 +426,46 @@ class ImageViewer(ttk.Frame):
             
     def update_threshold(self, *args):
         # Get threshold values from the sliders
-        threshold_min = round(self.threshold_min_slider.get(), 2)  # Round to two decimal places
-        threshold_max = round(self.threshold_max_slider.get(), 2)  # Round to two decimal places
+        self.threshold_min = round(self.threshold_min_slider.get(), 2)  # Round to two decimal places
+        self.threshold_max = round(self.threshold_max_slider.get(), 2)  # Round to two decimal places
         
         # Update the threshold labels with the current values
         #self.threshold_min_value_label.config(text=f"Threshold Min: {threshold_min}")
         #self.threshold_max_value_label.config(text=f"Threshold Max: {threshold_max}")
 
-        if threshold_min >= threshold_max:
+        if self.threshold_min >= self.threshold_max:
             # Adjust the values to ensure threshold_min is always less than threshold_max
-            threshold_max = max(threshold_max, threshold_min + 0.01)  # Adjust threshold_max to be slightly higher than threshold_min
-            self.threshold_max_slider.set(threshold_max)  # Update the slider value
-        if threshold_max <= threshold_min:
+            self.threshold_max = max(self.threshold_max, self.threshold_min + 0.01)  # Adjust threshold_max to be slightly higher than threshold_min
+            self.threshold_max_slider.set(self.threshold_max)  # Update the slider value
+        if self.threshold_max <= self.threshold_min:
             # Adjust the values to ensure threshold_max is always greater than threshold_min
-            threshold_min = min(threshold_min, threshold_max - 0.01)  # Adjust threshold_min to be slightly lower than threshold_max
-            self.threshold_min_slider.set(threshold_min)  # Update the slider value
-            
+            self.threshold_min = min(self.threshold_min, self.threshold_max - 0.01)  # Adjust threshold_min to be slightly lower than threshold_max
+            self.threshold_min_slider.set(self.threshold_min)  # Update the slider value
+        self.threshold()
+        self.update_displayed_image()  
         # Update the parameters label with the current values
-        self.update_parameters_label(threshold_min=threshold_min, threshold_max=threshold_max)
+        self.update_parameters_label(threshold_min=self.threshold_min, threshold_max=self.threshold_max)
+        
 
         # Apply threshold adjustment
-        thresholded_image = self.threshold( threshold_min, threshold_max)
+        # thresholded_image = self.threshold( self.threshold_min, self.threshold_max)
 
         # Update the displayed image using Matplotlib
-        self.axis.imshow(thresholded_image, cmap='gray')
-        self.canvas.draw_idle()
+        # self.axis.imshow(thresholded_image, cmap='gray')
+        # self.canvas.draw_idle()
 
-    def threshold(self, threshold_min, threshold_max):
+    def threshold(self):
         # Apply minimum and maximum thresholds to images
-        thresholded_image = np.copy(self.canaux[1])
-        thresholded_image[thresholded_image < threshold_min] = 0  # Set values below the min threshold to 0
-        thresholded_image[thresholded_image > threshold_max] = 1  # Set values above the max threshold to 0
-        
-        return thresholded_image 
+        #thresholded_image = np.copy(self.canaux[1])
+        #thresholded_image[thresholded_image < self.threshold_min] = 0  # Set values below the min threshold to 0
+        #thresholded_image[thresholded_image > self.threshold_max] = 1  # Set values above the max threshold to 0
+        if self.selected_channel == 1:
+            self.canaux[0][self.current_index][self.normalized_image_array_green[self.current_index]<self.threshold_min] = 0
+            self.canaux[0][self.current_index][self.normalized_image_array_green[self.current_index]>self.threshold_max] = 1
+        elif self.selected_channel == 2:
+            self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]<self.threshold_min] = 0
+            self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]>self.threshold_max] = 1
+        #return thresholded_image[1]
     
     def update_parameters_label(self, brightness=None, contrast=None, threshold_min=None, threshold_max=None):
         # Get the current label text

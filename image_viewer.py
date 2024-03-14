@@ -205,13 +205,13 @@ class ImageViewer(ttk.Frame):
 
     def load_image(self, image_path):
         # Load and display image using Matplotlib
-        self.original_image = Image.open(image_path)
-        #self.original_image = tifffile.imread(image_path)
+        #self.original_image = Image.open(image_path)
+        self.original_image = tifffile.imread(image_path)
         #print("Original Image:", self.original_image.shape)
-        #image_width, image_height = self.original_image[0,0].shape
-        image_width, image_height = self.original_image.size
-        #self.red_images = np.copy(self.original_image[1])
-        #self.green_images = np.copy(self.original_image[0])
+        image_width, image_height = self.original_image[0,0].shape
+        #image_width, image_height = self.original_image.size
+        self.red_images = np.copy(self.original_image[1])
+        self.green_images = np.copy(self.original_image[0])
         
        # Placeholder image
         self.placeholder_image = Image.new("RGB", (image_width, image_height), "lightgray")
@@ -670,7 +670,7 @@ class ImageViewer(ttk.Frame):
     ##### !!!THIS METHOD NEEDS TO STAY HERE. NOT TESTED YET USING TIFFFILE TO EXTRACT THE IMAGES!!!
 
     def draw_segments_from_csv(self, coordinates):
-        self.clear_segments()
+        #self.clear_segments()
         if (len(coordinates) < 3):
             messagebox.showerror("Error", "Not enough points to form a segment in one of the ROIs imported.")
             return

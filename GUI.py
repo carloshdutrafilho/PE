@@ -52,6 +52,7 @@ class GUI(tk.Toplevel):
 
         # Graph Viewer
         self.graph_viewer = GraphViewer(data_graph_frame)
+        self.image_viewer.set_graph_viewer(self.graph_viewer)
         data_graph_frame.add(self.graph_viewer, minsize=100)  # Set minimum size
         
         self.load_screen = LoadScreen(self.master, app=self, image_viewer=self.image_viewer)

@@ -19,6 +19,7 @@ class ImageViewer(ttk.Frame):
         super().__init__(master)
 
         self.data_viewer = None
+        self.graph_viewer=None
 
         self.current_time = tk.DoubleVar()
         self.current_time.set(0)
@@ -27,6 +28,8 @@ class ImageViewer(ttk.Frame):
         self.normalized_image_array = np.array([])
         self.selected_index = 0
         
+        self.normalized_image_array_red = np.array([])
+
         # Placeholder image
         self.placeholder_image = Image.new("RGB", (400, 350), "lightgray")
         self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
@@ -36,7 +39,7 @@ class ImageViewer(ttk.Frame):
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         # Create a Matplotlib figure and axis for image display
-        self.figure = Figure(figsize=(6, 6))
+        self.figure = Figure(figsize=(5, 5))
         self.axis = self.figure.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.figure, master=self.image_container)
         self.canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -44,10 +47,22 @@ class ImageViewer(ttk.Frame):
         # Label to display current parameters
         self.parameters_label = tk.Label(self.image_container, text="Contrast: 0\nBrightness: 0\nThreshold Min: 0\nThreshold Max: 0  ", bd=1, relief=tk.SOLID, width=20, height=4)
         self.parameters_label.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
-        
+
+        self.selected_channel = 2
+        # Red channel button
+        self.color_mode = 'gray'
+        self.color_change_button = tk.Button(self.image_container, text="Red Channel", command=self.select_red_channel)
+        self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+        self.is_color_changed = False
+
+        # Green channel button
+        self.color_mode = 'gray'
+        self.color_change_button = tk.Button(self.image_container, text="Green Channel", command=self.select_green_channel)
+        self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+        self.is_color_changed = False
         # Color change button
-        self.color_mode = 'grayscale'
-        self.color_change_button = ttk.Button(self.image_container, text="Change Color", command=self.change_color)
+        self.color_mode = 'gray'
+        self.color_change_button = tk.Button(self.image_container, text="Change Color", command=self.change_color)
         self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
         self.is_color_changed = False
         
@@ -110,6 +125,8 @@ class ImageViewer(ttk.Frame):
         self.segment_y_points = []
         self.x_in = []
         self.y_in = []
+        self.listes_graphs=[]
+        self.id_color=-1 
 
         # Bind event for segmentation
         self.canvas.mpl_connect('button_press_event', self.on_segment_click)
@@ -136,18 +153,22 @@ class ImageViewer(ttk.Frame):
         self.moyennage_entry.bind("<Return>", self.temporal_averaging)
 
         # Contrast adjustment
+        self.contrast_value = 0
         self.contrast_label = ttk.Label(self.parameters_container, text="Contrast=")
         self.contrast_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.contrast_slider = ttk.Scale(self.parameters_container, from_=0, to=100, orient=tk.HORIZONTAL, command=self.update_contrast)
         self.contrast_slider.pack(side=tk.LEFT, padx=10, pady=10)
         
         # Brightness adjustment
+        self.brightness_value = 0
         self.brightness_label = ttk.Label(self.parameters_container, text="Brightness=")
         self.brightness_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.brightness_slider = ttk.Scale(self.parameters_container, from_=-100, to=100, orient=tk.HORIZONTAL, command=self.update_brightness)
         self.brightness_slider.pack(side=tk.LEFT, padx=10, pady=10)
 
         # Threshold adjustment
+        self.threshold_min = 0
+        self.threshold_max = 1
         self.threshold_min_label = ttk.Label(self.parameters_container, text="Min Threshold=")
         self.threshold_min_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.threshold_min_slider = ttk.Scale(self.parameters_container, from_=0, to=0.98, orient=tk.HORIZONTAL, command=self.update_threshold)
@@ -168,12 +189,19 @@ class ImageViewer(ttk.Frame):
         self.image = None
         self.red_images = None
         self.green_images = None
-        self.color_mode = 'grayscale'  # Initial color mode
+        self.color_mode = 'gray'  # Initial color mode
         self.current_index = 0 #Index for Slider
         self.reset_image()
+        self.canaux = {}
 
     def set_data_viewer(self, data_viewer):
         self.data_viewer = data_viewer
+
+    def set_data_viewer(self, data_viewer):
+        self.data_viewer = data_viewer
+
+    def set_graph_viewer(self, graph_viewer):
+        self.graph_viewer = graph_viewer
 
     def load_image(self, image_path):
         # Load and display image using Matplotlib
@@ -192,7 +220,7 @@ class ImageViewer(ttk.Frame):
         # Create a container for the image and parameters with the image dimensions
         self.image_container = tk.Frame(self, width=image_width, height=image_height)
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True) 
-
+        
         # Convert the original image to a NumPy array
         #self.original_image_array = np.asarray(self.original_image)
         # print("Original Image Array:", self.original_image_array.shape)
@@ -203,13 +231,19 @@ class ImageViewer(ttk.Frame):
         #min_value = np.min(self.original_image)
         #max_value = np.max(self.original_image)
         #self.normalized_image_array = (self.original_image - min_value) / (max_value - min_value)
-        # min_value_red = np.min(self.red_images)
-        # max_value_red = np.max(self.red_images)
-        # self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
-        # min_value_green = np.min(self.original_image)
-        # max_value_green = np.max(self.original_image)
-        # self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
+        min_value_red = np.min(self.red_images)
+        max_value_red = np.max(self.red_images)
+        self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
+        min_value_green = np.min(self.green_images)
+        max_value_green = np.max(self.green_images)
+        self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
 
+        self.canaux = {0: self.normalized_image_array_green,
+                        1: self.normalized_image_array_red}
+        del self.original_image
+        del self.red_images
+        del self.green_images
+        
         # Check the shape of the normalized image array
         # if len(self.normalized_image_array_red.shape) == 2:
         #     # If the array is 2D, keep it as is
@@ -227,24 +261,36 @@ class ImageViewer(ttk.Frame):
         #     print("Error: Incorrect dimensions after reshaping.")
         #     return
         
-        self.axis.imshow(self.original_image, cmap='gray')  # Display the reshaped 2D image
-        self.canvas.draw_idle()
-        
-        #self.image_display = self.axis.imshow(self.normalized_image_array_red[self.current_index], cmap='gray')
-        #self.image_display = self.axis.imshow(self.normalized_image_array)
-        # Add a slider to scroll through images
-        # ax_slider = self.figure.add_axes([0.2, 0.05, 0.65, 0.03])
-        # self.slider = Slider(ax_slider, 'Image', 0, len(self.normalized_image_array_red), valinit=0)
-        # self.slider.on_changed(self.update_image)
+        # self.axis.imshow(displayed_image, cmap='gray')  # Display the reshaped 2D image
+        # self.canvas.draw_idle()
+        if self.selected_channel == 1:
+            self.image_display = self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
+        if self.selected_channel == 2:
+            self.image_display = self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
 
-    def update_image(self, value):
-        index = int(self.slider.val)
-        self.image_display.set_data(self.normalized_image_array_red[index])
-        self.canvas.draw_idle()
+        #self.axis.imshow(self.normalized_image_array, cmap='gray')  # Display the reshaped 2D image
+        #self.canvas.draw_idle()
+        
+        self.image_display = self.axis.imshow(self.normalized_image_array_red[self.current_index], cmap='gray')
+        #self.image_display = self.axis.imshow(self.original_image)
+        # Add a slider to scroll through images
+        ax_slider = self.figure.add_axes([0.2, 0.05, 0.65, 0.03])
+        self.slider = Slider(ax_slider, 'Image', 0, self.canaux[1].shape[0]-1, valinit=0)
+        print(self.canaux[1].shape[0])
+        self.slider.on_changed(self.update_image)
+
+    def update_image(self,value = None):
+        self.current_index = int(self.slider.val)
+        if self.selected_channel == 1:
+            self.image_display.set_data(self.canaux[0][self.current_index])
+        if self.selected_channel == 2: 
+            self.image_display.set_data(self.canaux[1][self.current_index])
+        
+        
         self.update_displayed_image()
         
         # Initialize images_for_temporal_averaging list with the first image
-        self.images_for_temporal_averaging = [self.normalized_image_array_red]
+        self.images_for_temporal_averaging = [self.canaux[1]]
 
 
     def update_time_slider(self, max_time):
@@ -258,59 +304,66 @@ class ImageViewer(ttk.Frame):
     
     def update_contrast(self, *args):
         # Get contrast value from the slider
-        contrast = round(self.contrast_slider.get() / 100.0, 2)  # Round to two decimal places
+        self.contrast_value = round(self.contrast_slider.get() / 100.0, 2)  # Round to two decimal places
 
         # Update the contrast label with the current value
         #self.contrast_value_label.config(text=f"Contrast: {contrast}")
         
         # Update the parameters label with the current values
-        self.update_parameters_label(contrast=contrast)
+        #self.update_parameters_label(contrast=self.contrast)
         
         # Apply contrast adjustment
-        contrasted_image = self.contrast(self.image, contrast)
+        ##############################contrasted_image = self.contrast(self.image, contrast)
+        self.contrast()
+        self.update_displayed_image()
 
-        # Update the displayed image using Matplotlib
-        self.axis.imshow(contrasted_image, cmap='gray')
-        self.canvas.draw_idle()
+        # Update the displayed image using Matplotlib------------------------
+        # self.axis.imshow(contrasted_image, cmap='gray')
+        # self.canvas.draw_idle()
 
-    def contrast(self, image, value_contrast):
+    def contrast(self):
         # Calculate the contrasted image by multiplying by the contrast value
-        image_contrasted = np.clip(image * (1.0 + value_contrast), 0, 1)  # Normalize to [0, 1]
+        if self.selected_channel == 1:
+            self.canaux[0][self.current_index] = np.clip(self.normalized_image_array_green[self.current_index] * (1.0 + self.contrast_value), 0, 1)  # Normalize to [0, 1]
+        elif self.selected_channel == 2:
+            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] * (1.0 + self.contrast_value), 0, 1)  # Normalize to [0, 1]
 
-        return image_contrasted
     
     def update_brightness(self, *args):
         # Get brightness value from the slider
-        brightness = round(self.brightness_slider.get(), 2)  # Round to two decimal places
+        self.brightness_value = round(self.brightness_slider.get(), 2)  # Round to two decimal places
         
         # Update the brightness label with the current value
         #self.brightness_value_label.config(text=f"Brightness: {brightness}")
 
         # Update the parameters label with the current values
-        self.update_parameters_label(brightness=brightness)
+        #self.update_parameters_label(brightness=self.brightness)
         
         # Apply brightness adjustment
-        brightened_image = self.brightness(self.image, brightness)
-
+        # brightened_image = self.brightness(self.image, brightness)
+        self.brightness()
+        self.update_displayed_image()
         # Update the displayed image using Matplotlib
-        self.axis.imshow(brightened_image, cmap='gray')
-        self.canvas.draw_idle()
+        # self.axis.imshow(brightened_image, cmap='gray')
+        # self.canvas.draw_idle()
 
-    def brightness(self, image, brightness_value):
+    def brightness(self):
     
         # Calculate the image with adjusted brightness by adding the brightness value
-        image_brightened = np.clip(image + brightness_value / 255, 0, 1)  # Normalize to [0, 1]
+        #image_brightened = np.clip(image + brightness_value / 255, 0, 1)  # Normalize to [0, 1]
+        if self.selected_channel == 1:
+            self.canaux[0][self.current_index] =  np.clip(self.normalized_image_array_green[self.current_index] + self.brightness_value/100, 0, 1)  # Normalize to [0, 1]
+        elif self.selected_channel == 2:
+            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] + self.brightness_value/100, 0, 1)  # Normalize to [0, 1]
+        # # Print debug information
+        # print("Original Image Array:")
+        # print(self.normalized_image_array)
+        # print("Brightness Value:", brightness_value)
+        # # Print the adjusted image array
+        # print("Brightened Image Array:")
+        # print(image_brightened)
         
-        # Print debug information
-        print("Original Image Array:")
-        print(self.normalized_image_array)
-        print("Brightness Value:", brightness_value)
-        
-        # Print the adjusted image array
-        print("Brightened Image Array:")
-        print(image_brightened)
-        
-        return image_brightened
+        # return image_brightened
     
     def load_image_at_index(self, time):
         if not self.normalized_image_array_red.any():
@@ -322,7 +375,7 @@ class ImageViewer(ttk.Frame):
         selected_image_path = self.normalized_image_array_red[time]
         self.update_displayed_image()
         
-    def update_image_slider(self, *args):
+    def update_image_slider(self):
         self.selected_index = int(self.image_slider.get())
         print("Selected Index:", self.selected_index)
         self.update_displayed_image(self.selected_index)
@@ -382,39 +435,46 @@ class ImageViewer(ttk.Frame):
             
     def update_threshold(self, *args):
         # Get threshold values from the sliders
-        threshold_min = round(self.threshold_min_slider.get(), 2)  # Round to two decimal places
-        threshold_max = round(self.threshold_max_slider.get(), 2)  # Round to two decimal places
+        self.threshold_min = round(self.threshold_min_slider.get(), 2)  # Round to two decimal places
+        self.threshold_max = round(self.threshold_max_slider.get(), 2)  # Round to two decimal places
         
         # Update the threshold labels with the current values
         #self.threshold_min_value_label.config(text=f"Threshold Min: {threshold_min}")
         #self.threshold_max_value_label.config(text=f"Threshold Max: {threshold_max}")
 
-        if threshold_min >= threshold_max:
+        if self.threshold_min >= self.threshold_max:
             # Adjust the values to ensure threshold_min is always less than threshold_max
-            threshold_max = max(threshold_max, threshold_min + 0.01)  # Adjust threshold_max to be slightly higher than threshold_min
-            self.threshold_max_slider.set(threshold_max)  # Update the slider value
-        if threshold_max <= threshold_min:
+            self.threshold_max = max(self.threshold_max, self.threshold_min + 0.01)  # Adjust threshold_max to be slightly higher than threshold_min
+            self.threshold_max_slider.set(self.threshold_max)  # Update the slider value
+        if self.threshold_max <= self.threshold_min:
             # Adjust the values to ensure threshold_max is always greater than threshold_min
-            threshold_min = min(threshold_min, threshold_max - 0.01)  # Adjust threshold_min to be slightly lower than threshold_max
-            self.threshold_min_slider.set(threshold_min)  # Update the slider value
-            
+            self.threshold_min = min(self.threshold_min, self.threshold_max - 0.01)  # Adjust threshold_min to be slightly lower than threshold_max
+            self.threshold_min_slider.set(self.threshold_min)  # Update the slider value
+        self.threshold()
+        self.update_displayed_image()  
         # Update the parameters label with the current values
-        self.update_parameters_label(threshold_min=threshold_min, threshold_max=threshold_max)
+        self.update_parameters_label(threshold_min=self.threshold_min, threshold_max=self.threshold_max)
+        
 
         # Apply threshold adjustment
-        thresholded_image = self.threshold( threshold_min, threshold_max)
+        # thresholded_image = self.threshold( self.threshold_min, self.threshold_max)
 
         # Update the displayed image using Matplotlib
-        self.axis.imshow(thresholded_image, cmap='gray')
-        self.canvas.draw_idle()
+        # self.axis.imshow(thresholded_image, cmap='gray')
+        # self.canvas.draw_idle()
 
-    def threshold(self, threshold_min, threshold_max):
+    def threshold(self):
         # Apply minimum and maximum thresholds to images
-        thresholded_image = np.copy(self.normalized_image_array_red)
-        thresholded_image[thresholded_image < threshold_min] = 0  # Set values below the min threshold to 0
-        thresholded_image[thresholded_image > threshold_max] = 1  # Set values above the max threshold to 0
-        
-        return thresholded_image 
+        #thresholded_image = np.copy(self.canaux[1])
+        #thresholded_image[thresholded_image < self.threshold_min] = 0  # Set values below the min threshold to 0
+        #thresholded_image[thresholded_image > self.threshold_max] = 1  # Set values above the max threshold to 0
+        if self.selected_channel == 1:
+            self.canaux[0][self.current_index][self.normalized_image_array_green[self.current_index]<self.threshold_min] = 0
+            self.canaux[0][self.current_index][self.normalized_image_array_green[self.current_index]>self.threshold_max] = 1
+        elif self.selected_channel == 2:
+            self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]<self.threshold_min] = 0
+            self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]>self.threshold_max] = 1
+        #return thresholded_image[1]
     
     def update_parameters_label(self, brightness=None, contrast=None, threshold_min=None, threshold_max=None):
         # Get the current label text
@@ -436,7 +496,7 @@ class ImageViewer(ttk.Frame):
         parameters_text = f"Contrast: {contrast}\nBrightness: {brightness}\nThreshold Min: {threshold_min}\nThreshold Max: {threshold_max}  "
         self.parameters_label.config(text=parameters_text)
     
-    def update_displayed_image(self, index=None):
+    def update_displayed_image(self):
         #Update the displayed image using Matplotlib
         #f self.color_mode == 'inverted':
         #   displayed_image = 1 - self.image
@@ -446,8 +506,14 @@ class ImageViewer(ttk.Frame):
         #self.axis.imshow(displayed_image, cmap='gray')
         #self.canvas.draw_idle()
         #Get the original image shape
-        original_shape = self.original_image[0,0].shape
-
+        
+        if self.selected_channel == 1:
+            self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
+            
+        if self.selected_channel == 2:
+            self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
+        self.canvas.draw_idle()
+        """ ---------------------------------------------------------------------------
         # Reshape the image to its original shape
         displayed_image = self.image.reshape(original_shape)
 
@@ -463,21 +529,30 @@ class ImageViewer(ttk.Frame):
         # displayed_image = self.apply_color_mode(self.image)
         # Update the displayed image using Matplotlib
         self.axis.imshow(resized_image, cmap='gray')
+
         self.canvas.draw_idle()
-        
+        """
     def apply_color_mode(self, image):
         # Apply the selected color mode to the image
-        if self.color_mode == 'inverted' and self.is_color_changed:
+        if self.color_mode == 'gray_r' and self.is_color_changed:
             return 1.0 - image.reshape(self.original_image[0,0].shape)  # Reshape to the original shape
         else:
             return image
+        
+    def select_green_channel(self):
+        self.selected_channel = 1
+        self.update_image()
+
+    def select_red_channel(self):
+        self.selected_channel = 2
+        self.update_image()
 
     def change_color(self):
         #self.color_mode = 'inverted' if self.color_mode == 'grayscale' else 'grayscale'
         #self.update_displayed_image()
         #self.color_change_button.pack(side=tk.TOP, anchor=tk.NE, padx=10, pady=10)  # Pack the button again    
         self.is_color_changed = not self.is_color_changed
-        self.color_mode = 'inverted' if self.is_color_changed else 'grayscale'
+        self.color_mode = 'gray_r' if self.is_color_changed else 'gray'
         self.update_displayed_image()
         self.color_change_button.config(text="Change Color" if not self.is_color_changed else "Revert Color")
         
@@ -561,6 +636,7 @@ class ImageViewer(ttk.Frame):
 
         if self.segmentation_mode_enabled:
             # Clear previous segment points
+            self.update_color()
             self.segment_x_points = []
             self.segment_y_points = []
             self.segmentation_button.config(text="Stop Segmentation")
@@ -569,7 +645,10 @@ class ImageViewer(ttk.Frame):
             self.process_segments()
             self.segmentation_button.config(text="Start Segmentation")
  
+ 
     def on_segment_click(self, event):
+        marker_styles = ['b.', 'g.', 'r.', 'c.', 'm.', 'y.', 'k.', 'w.']
+
         # Check if segmentation mode is enabled
         if not self.segmentation_mode_enabled:
             return
@@ -579,7 +658,7 @@ class ImageViewer(ttk.Frame):
         self.segment_y_points.append(event.ydata)
 
         # Draw a red dot at the clicked point
-        self.axis.plot(event.xdata, event.ydata, 'ro')
+        self.axis.plot(event.xdata, event.ydata, marker_styles[self.id_color])
         self.canvas.draw()
 
     ##### !!!THIS METHOD NEEDS TO STAY HERE. NOT TESTED YET USING TIFFFILE TO EXTRACT THE IMAGES!!!
@@ -607,6 +686,7 @@ class ImageViewer(ttk.Frame):
         self.canvas.draw()
 
     def process_segments(self):
+        color_styles = ['b-', 'g-', 'r-', 'c-', 'm-', 'y-', 'k-', 'w-']
         if len(self.segment_x_points) < 3:
             return  # At least 3 points needed to form a segment
 
@@ -617,6 +697,10 @@ class ImageViewer(ttk.Frame):
         # Convert segment points to NumPy array
         segment_x_array = np.array(self.segment_x_points)
         segment_y_array = np.array(self.segment_y_points)
+
+        # Draw the closed segment on the displayed image
+        self.axis.plot(segment_x_array, segment_y_array, color_styles[self.id_color])
+        self.canvas.draw()
 
         # Get coordinates of points inside the polygon
         self.list_in()
@@ -630,9 +714,18 @@ class ImageViewer(ttk.Frame):
             'segment_y_array': segment_y_array,
             'mean_values': mean_values,
         }
+        print(len(mean_values))
 
+        self.listes_graphs.append((segment_data['mean_values']))
         # Pass the data to the DataViewer
         self.data_viewer.process_segment_data(segment_data)
+
+        print('taille X : ', len(list(range(0, len(self.listes_graphs[0])))))
+        print('taille Y : ',len(self.listes_graphs[0])) 
+         # Pass the data to the GraphViewer
+        self.graph_viewer.process_to_graph(list(range(0, len(self.listes_graphs[0]))),self.listes_graphs)
+
+ 
 
     def in_polygon(self, test):
         x, y = test
@@ -671,7 +764,7 @@ class ImageViewer(ttk.Frame):
     def mean_over_time(self):
         try:
             # Lire toutes les images du fichier TIFF
-            images = imageio.volread('C:\\Users\\carlo\\Downloads\\transfer_6891262_files_d43c2e32\\220728-S2_04_500mV.ome.tiff')
+            images = imageio.volread(r'C:\Users\tombo\Downloads\220728-S2_04_500mV.ome.tiff')
             print("Nbr d'images :",(len(images[1])))# canal vert ou rouge, jsp
             # Initialiser une liste pour stocker les moyennes au fil du temps
             mean_values = []
@@ -687,6 +780,24 @@ class ImageViewer(ttk.Frame):
         except Exception as e:
             print("Error calculating mean over time:", e)
             return None
+        
+            
+    def update_color(self):
+        if self.id_color<7:
+            self.id_color+=1
+        else : 
+            self.id_color=0
+
+    
+    # def write_to_csv(self, data, csv_filename='dataset2.csv'):
+    # # Write to the CSV file
+    #     with open(csv_filename, mode='w', newline='') as csv_file:
+    #         writer = csv.writer(csv_file)
+
+    #         # Write data from lists
+    #         for row in data:
+    #             writer.writerow(row)
+    #     print(f"Data written to '{csv_filename}.csv' successfully.")
         
     def generate_chart(self):
         # Generate a chart based on the points from the segmentation

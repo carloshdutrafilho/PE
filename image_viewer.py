@@ -177,12 +177,13 @@ class ImageViewer(ttk.Frame):
 
     def load_image(self, image_path):
         # Load and display image using Matplotlib
-        #self.original_image = Image.open(image_path)
-        self.original_image = tifffile.imread(image_path)
+        self.original_image = Image.open(image_path)
+        #self.original_image = tifffile.imread(image_path)
         #print("Original Image:", self.original_image.shape)
-        image_width, image_height = self.original_image[0,0].shape
-        self.red_images = np.copy(self.original_image[1])
-        self.green_images = np.copy(self.original_image[0])
+        #image_width, image_height = self.original_image[0,0].shape
+        image_width, image_height = self.original_image.size
+        #self.red_images = np.copy(self.original_image[1])
+        #self.green_images = np.copy(self.original_image[0])
         
        # Placeholder image
         self.placeholder_image = Image.new("RGB", (image_width, image_height), "lightgray")
@@ -202,20 +203,20 @@ class ImageViewer(ttk.Frame):
         #min_value = np.min(self.original_image)
         #max_value = np.max(self.original_image)
         #self.normalized_image_array = (self.original_image - min_value) / (max_value - min_value)
-        min_value_red = np.min(self.red_images)
-        max_value_red = np.max(self.red_images)
-        self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
-        min_value_green = np.min(self.original_image)
-        max_value_green = np.max(self.original_image)
-        self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
+        # min_value_red = np.min(self.red_images)
+        # max_value_red = np.max(self.red_images)
+        # self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
+        # min_value_green = np.min(self.original_image)
+        # max_value_green = np.max(self.original_image)
+        # self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
 
         # Check the shape of the normalized image array
-        if len(self.normalized_image_array_red.shape) == 2:
-            # If the array is 2D, keep it as is
-            self.image = self.normalized_image_array_red.copy()
-        elif len(self.normalized_image_array_red.shape) == 3:
-            # If the array is 3D (RGB), convert it to grayscale
-            self.image = np.mean(self.normalized_image_array_red, axis=-1).copy()
+        # if len(self.normalized_image_array_red.shape) == 2:
+        #     # If the array is 2D, keep it as is
+        #     self.image = self.normalized_image_array_red.copy()
+        # elif len(self.normalized_image_array_red.shape) == 3:
+        #     # If the array is 3D (RGB), convert it to grayscale
+        #     self.image = np.mean(self.normalized_image_array_red, axis=-1).copy()
         
         # Reshape the 3D array to 2D for display
         #displayed_image = self.image.reshape(self.normalized_image_array.shape)
@@ -226,15 +227,15 @@ class ImageViewer(ttk.Frame):
         #     print("Error: Incorrect dimensions after reshaping.")
         #     return
         
-        #self.axis.imshow(self.normalized_image_array, cmap='gray')  # Display the reshaped 2D image
-        #self.canvas.draw_idle()
+        self.axis.imshow(self.original_image, cmap='gray')  # Display the reshaped 2D image
+        self.canvas.draw_idle()
         
-        self.image_display = self.axis.imshow(self.normalized_image_array_red[self.current_index], cmap='gray')
+        #self.image_display = self.axis.imshow(self.normalized_image_array_red[self.current_index], cmap='gray')
         #self.image_display = self.axis.imshow(self.normalized_image_array)
         # Add a slider to scroll through images
-        ax_slider = self.figure.add_axes([0.2, 0.05, 0.65, 0.03])
-        self.slider = Slider(ax_slider, 'Image', 0, len(self.normalized_image_array_red), valinit=0)
-        self.slider.on_changed(self.update_image)
+        # ax_slider = self.figure.add_axes([0.2, 0.05, 0.65, 0.03])
+        # self.slider = Slider(ax_slider, 'Image', 0, len(self.normalized_image_array_red), valinit=0)
+        # self.slider.on_changed(self.update_image)
 
     def update_image(self, value):
         index = int(self.slider.val)
@@ -581,28 +582,29 @@ class ImageViewer(ttk.Frame):
         self.axis.plot(event.xdata, event.ydata, 'ro')
         self.canvas.draw()
 
-    # def process_segments(self):
-    #     if len(self.segment_x_points) < 3:
-    #         return  # At least 3 points needed to form a segment
-
-    #     # Add the first point to the end to create a closed segment
-    #     self.segment_x_points.append(self.segment_x_points[0])
-    #     self.segment_y_points.append(self.segment_y_points[0])
-
-    #     # Convert segment points to NumPy array
-    #     segment_x_array = np.array(self.segment_x_points)
-    #     segment_y_array = np.array(self.segment_y_points)
-
-    #     # Draw the closed segment on the displayed image
-    #     self.axis.plot(segment_x_array, segment_y_array, 'r-')
+    ##### !!!THIS METHOD NEEDS TO STAY HERE. NOT TESTED YET USING TIFFFILE TO EXTRACT THE IMAGES!!!
+    # def clear_segments(self):
+    #     self.axis.clear()
+    #     self.segment_x_points = []
+    #     self.segment_y_points = []
     #     self.canvas.draw()
+    ##### !!!THIS METHOD NEEDS TO STAY HERE. NOT TESTED YET USING TIFFFILE TO EXTRACT THE IMAGES!!!
 
-    #     # Afficher les coordonnées
-    #     print("Coordonnées x des sommets du polygone :", segment_x_array)
-    #     print("Coordonnées y des sommets du polygone :", segment_y_array)
-    #     self.list_in()
+    def draw_segments_from_csv(self, coordinates):
+        self.clear_segments()
+        if (len(coordinates) < 3):
+            messagebox.showerror("Error", "Not enough points to form a segment in one of the ROIs imported.")
+            return
         
-    #     self.write_to_csv([[list(range(1, len(self.mean_over_time())))],[self.mean_over_time()[:-1]]])# retrait dernier element : pb de shpae : 1830 et 1831
+        segment_x_points = []
+        segment_y_points = []
+
+        for pair in coordinates:
+            segment_x_points.append(pair[0])
+            segment_y_points.append(pair[1])
+        
+        self.axis.plot(segment_x_points, segment_y_points, 'r-')
+        self.canvas.draw()
 
     def process_segments(self):
         if len(self.segment_x_points) < 3:
@@ -685,16 +687,6 @@ class ImageViewer(ttk.Frame):
         except Exception as e:
             print("Error calculating mean over time:", e)
             return None
-    
-    # def write_to_csv(self, data, csv_filename='dataset2.csv'):
-    # # Write to the CSV file
-    #     with open(csv_filename, mode='w', newline='') as csv_file:
-    #         writer = csv.writer(csv_file)
-
-    #         # Write data from lists
-    #         for row in data:
-    #             writer.writerow(row)
-    #     print(f"Data written to '{csv_filename}.csv' successfully.")
         
     def generate_chart(self):
         # Generate a chart based on the points from the segmentation

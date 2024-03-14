@@ -162,3 +162,6 @@ class LoadScreen(Frame):
 
     def get_project_path(self):
         return self.project_path
+    
+    def get_image_path(self):
+        return self.selected_file

@@ -43,7 +43,7 @@ class GUI(tk.Toplevel):
 
         # Data and Graph Viewers
         data_graph_frame = tk.PanedWindow(main_container, orient=tk.VERTICAL, sashwidth=5, sashrelief=tk.SUNKEN)
-        main_container.add(data_graph_frame, minsize=100)  # Set minimum size
+        main_container.add(data_graph_frame, minsize=150)  # Set minimum size
 
         # Data Viewer
         self.data_viewer = DataViewer(data_graph_frame, self)
@@ -109,6 +109,12 @@ class GUI(tk.Toplevel):
 
     def get_project_path(self):
         return self.load_screen.get_project_path()
+    
+    def get_image_path(self):
+        return self.load_screen.get_image_path()
+    
+    def draw_segments_from_csv(self, coordinates):
+        self.image_viewer.draw_segments_from_csv(coordinates)
 
     def bind_shortcuts(self):
         self.bind("<Control-U>", lambda event: self.open_file())

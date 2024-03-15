@@ -17,6 +17,12 @@ import csv
 class ImageViewer(ttk.Frame):
     def __init__(self, master):
         super().__init__(master)
+        self.canaux = {0:np.zeros((1,1,1)), 1:np.zeros((1,1,1))}
+        self.current_index = 0 #Index for Slider
+        self.normalized_image_array_red = np.zeros((1,1,1))
+        self.normalized_image_array_green = np.zeros((1,1,1))
+
+        
 
         self.data_viewer = None
         self.graph_viewer=None
@@ -168,17 +174,17 @@ class ImageViewer(ttk.Frame):
 
         # Threshold adjustment
         self.threshold_min = 0
-        self.threshold_max = 1
+        self.threshold_max = 255
         self.threshold_min_label = ttk.Label(self.parameters_container, text="Min Threshold=")
         self.threshold_min_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.threshold_min_slider = ttk.Scale(self.parameters_container, from_=0, to=0.98, orient=tk.HORIZONTAL, command=self.update_threshold)
+        self.threshold_min_slider = ttk.Scale(self.parameters_container, from_=0, to=254, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_min_slider.pack(side=tk.LEFT, padx=10, pady=10)
 
         self.threshold_max_label = ttk.Label(self.parameters_container, text="Max Threshold=")
         self.threshold_max_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.threshold_max_slider = ttk.Scale(self.parameters_container, from_=00.2, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
+        self.threshold_max_slider = ttk.Scale(self.parameters_container, from_=1, to=255, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_max_slider.pack(side=tk.LEFT, padx=10, pady=10)
-        self.threshold_max_slider.set(1)
+        self.threshold_max_slider.set(255)
         
         # Temporal averaging variables
         self.window_size = 1  # Initial window size
@@ -187,12 +193,10 @@ class ImageViewer(ttk.Frame):
         # Keep a reference to the original image for reset functionality
         self.original_image = None
         self.image = None
-        self.red_images = None
-        self.green_images = None
         self.color_mode = 'gray'  # Initial color mode
-        self.current_index = 0 #Index for Slider
+        
         self.reset_image()
-        self.canaux = {}
+        
 
     def set_data_viewer(self, data_viewer):
         self.data_viewer = data_viewer
@@ -210,9 +214,12 @@ class ImageViewer(ttk.Frame):
         #print("Original Image:", self.original_image.shape)
         image_width, image_height = self.original_image[0,0].shape
         #image_width, image_height = self.original_image.size
-        self.red_images = np.copy(self.original_image[1])
-        self.green_images = np.copy(self.original_image[0])
         
+        
+
+        red_images = np.copy(self.original_image[1])
+        green_images = np.copy(self.original_image[0])
+        del self.original_image
        # Placeholder image
         self.placeholder_image = Image.new("RGB", (image_width, image_height), "lightgray")
         self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
@@ -230,19 +237,30 @@ class ImageViewer(ttk.Frame):
         # Normalize the pixel values to the range [0, 1]
         #min_value = np.min(self.original_image)
         #max_value = np.max(self.original_image)
-        #self.normalized_image_array = (self.original_image - min_value) / (max_value - min_value)
-        min_value_red = np.min(self.red_images)
-        max_value_red = np.max(self.red_images)
-        self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
-        min_value_green = np.min(self.green_images)
-        max_value_green = np.max(self.green_images)
-        self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
-
-        self.canaux = {0: self.normalized_image_array_green,
-                        1: self.normalized_image_array_red}
-        del self.original_image
-        del self.red_images
-        del self.green_images
+        # #self.normalized_image_array = (self.original_image - min_value) / (max_value - min_value)
+        # min_value_red = np.min(self.red_images)
+        # max_value_red = np.max(self.red_images)
+        
+        min_value_red = np.percentile(red_images[0],0.1)
+        max_value_red = np.percentile(red_images[0],99.8)
+        # self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
+        self.normalized_image_array_red = (255*np.clip(red_images,min_value_red,max_value_red)/(max_value_red- min_value_red)).astype(np.uint8)
+        
+        del red_images
+        # min_value_green = np.min(self.green_images)
+        # max_value_green = np.max(self.green_images)
+        min_value_green = np.percentile(green_images[0],0.1)
+        max_value_green = np.percentile(green_images[0],99.8)
+        # self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
+        self.normalized_image_array_green = (255*np.clip(green_images,min_value_green,max_value_green)/(max_value_green- min_value_green)).astype(np.uint8)
+        
+        if np.mean(green_images[0])>2**15: #Si le fond de l'image est blanc, le convertir en noir
+            self.normalized_image_array_green = 255- self.normalized_image_array_green
+            self.normalized_image_array_red = 255- self.normalized_image_array_red
+        del green_images
+        self.canaux = {0: np.copy(self.normalized_image_array_green),
+                        1: np.copy(self.normalized_image_array_red)}
+        
         
         # Check the shape of the normalized image array
         # if len(self.normalized_image_array_red.shape) == 2:
@@ -290,7 +308,7 @@ class ImageViewer(ttk.Frame):
         self.update_displayed_image()
         
         # Initialize images_for_temporal_averaging list with the first image
-        self.images_for_temporal_averaging = [self.canaux[1]]
+        
 
 
     def update_time_slider(self, max_time):
@@ -324,9 +342,9 @@ class ImageViewer(ttk.Frame):
     def contrast(self):
         # Calculate the contrasted image by multiplying by the contrast value
         if self.selected_channel == 1:
-            self.canaux[0][self.current_index] = np.clip(self.normalized_image_array_green[self.current_index] * (1.0 + self.contrast_value), 0, 1)  # Normalize to [0, 1]
+            self.canaux[0][self.current_index] = np.clip(self.normalized_image_array_green[self.current_index] * (1.0 + self.contrast_value), 0, 255)  # Normalize to [0, 1]
         elif self.selected_channel == 2:
-            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] * (1.0 + self.contrast_value), 0, 1)  # Normalize to [0, 1]
+            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] * (1.0 + self.contrast_value), 0, 255)  # Normalize to [0, 1]
 
     
     def update_brightness(self, *args):
@@ -352,9 +370,9 @@ class ImageViewer(ttk.Frame):
         # Calculate the image with adjusted brightness by adding the brightness value
         #image_brightened = np.clip(image + brightness_value / 255, 0, 1)  # Normalize to [0, 1]
         if self.selected_channel == 1:
-            self.canaux[0][self.current_index] =  np.clip(self.normalized_image_array_green[self.current_index] + self.brightness_value/100, 0, 1)  # Normalize to [0, 1]
+            self.canaux[0][self.current_index] =  np.clip(self.normalized_image_array_green[self.current_index] + self.brightness_value, 0, 255)  # Normalize to [0, 1]
         elif self.selected_channel == 2:
-            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] + self.brightness_value/100, 0, 1)  # Normalize to [0, 1]
+            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] + self.brightness_value, 0, 255)  # Normalize to [0, 1]
         # # Print debug information
         # print("Original Image Array:")
         # print(self.normalized_image_array)
@@ -404,39 +422,38 @@ class ImageViewer(ttk.Frame):
 
         # Update the window size and reload images for temporal averaging
         self.window_size = window_size
-        self.load_images_for_temporal_averaging()
+        self.temporal_averaging()
 
             
-    def load_images_for_temporal_averaging(self):
-        # Load the images within the specified window for temporal averaging
-        start_time = int(self.current_time.get())
-        end_time = min(start_time + self.window_size, len(self.image_paths))
-
-        images_to_average = [np.array(Image.open(self.image_paths[i])) for i in range(start_time, end_time)]
+    # def load_images_for_temporal_averaging(self):
+    #     # Load the images within the specified window for temporal averaging
         
 
-        # Update the list of images for temporal averaging
-        self.images_for_temporal_averaging = images_to_average
-
-        # Perform temporal averaging and update the displayed image
-        self.temporal_averaging()
+        
+    #     # Perform temporal averaging and update the displayed image
+    #     self.temporal_averaging()
 
     def temporal_averaging(self, event=None):
         # Check if there are images for temporal averaging
         if not self.images_for_temporal_averaging:
             return
+        nb_images = self.canaux[1].shape[0]
+        for i in range(nb_images-self.window_size+1):
+            self.normalized_image_array_green[i] = np.mean(self.normalized_image_array_green[i:i+self.window_size,:,:], axis = 0)
+            self.normalized_image_array_red[i] = np.mean(self.normalized_image_array_red[i:i+self.window_size,:,:], axis = 0)
+
 
         # Perform temporal averaging
-        averaged_image = np.mean(self.images_for_temporal_averaging, axis=0)
+        # averaged_image = np.mean(self.images_for_temporal_averaging, axis=0)
 
-        # Update the displayed image using Matplotlib
-        self.axis.imshow(averaged_image, cmap='gray')
-        self.canvas.draw_idle()
+        # # Update the displayed image using Matplotlib
+        # self.axis.imshow(averaged_image, cmap='gray')
+        # self.canvas.draw_idle()
             
     def update_threshold(self, *args):
         # Get threshold values from the sliders
-        self.threshold_min = round(self.threshold_min_slider.get(), 2)  # Round to two decimal places
-        self.threshold_max = round(self.threshold_max_slider.get(), 2)  # Round to two decimal places
+        self.threshold_min = round(self.threshold_min_slider.get())  
+        self.threshold_max = round(self.threshold_max_slider.get())  
         
         # Update the threshold labels with the current values
         #self.threshold_min_value_label.config(text=f"Threshold Min: {threshold_min}")
@@ -444,11 +461,11 @@ class ImageViewer(ttk.Frame):
 
         if self.threshold_min >= self.threshold_max:
             # Adjust the values to ensure threshold_min is always less than threshold_max
-            self.threshold_max = max(self.threshold_max, self.threshold_min + 0.01)  # Adjust threshold_max to be slightly higher than threshold_min
+            self.threshold_max = max(self.threshold_max, self.threshold_min + 1)  # Adjust threshold_max to be slightly higher than threshold_min
             self.threshold_max_slider.set(self.threshold_max)  # Update the slider value
         if self.threshold_max <= self.threshold_min:
             # Adjust the values to ensure threshold_max is always greater than threshold_min
-            self.threshold_min = min(self.threshold_min, self.threshold_max - 0.01)  # Adjust threshold_min to be slightly lower than threshold_max
+            self.threshold_min = min(self.threshold_min, self.threshold_max - 1)  # Adjust threshold_min to be slightly lower than threshold_max
             self.threshold_min_slider.set(self.threshold_min)  # Update the slider value
         self.threshold()
         self.update_displayed_image()  
@@ -469,11 +486,13 @@ class ImageViewer(ttk.Frame):
         #thresholded_image[thresholded_image < self.threshold_min] = 0  # Set values below the min threshold to 0
         #thresholded_image[thresholded_image > self.threshold_max] = 1  # Set values above the max threshold to 0
         if self.selected_channel == 1:
+            self.canaux[0][self.current_index]= np.copy(self.normalized_image_array_green[self.current_index])
             self.canaux[0][self.current_index][self.normalized_image_array_green[self.current_index]<self.threshold_min] = 0
-            self.canaux[0][self.current_index][self.normalized_image_array_green[self.current_index]>self.threshold_max] = 1
+            self.canaux[0][self.current_index][self.normalized_image_array_green[self.current_index]>self.threshold_max] = 255
         elif self.selected_channel == 2:
+            self.canaux[1][self.current_index]= np.copy(self.normalized_image_array_red[self.current_index])
             self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]<self.threshold_min] = 0
-            self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]>self.threshold_max] = 1
+            self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]>self.threshold_max] = 255
         #return thresholded_image[1]
     
     def update_parameters_label(self, brightness=None, contrast=None, threshold_min=None, threshold_max=None):

@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import *
 from PIL import Image, ImageTk
 import os
 from matplotlib.figure import Figure
@@ -57,20 +58,22 @@ class ImageViewer(ttk.Frame):
         self.selected_channel = 2
         # Red channel button
         self.color_mode = 'gray'
-        self.color_change_button = tk.Button(self.image_container, text="Red Channel", command=self.select_red_channel)
-        self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
-        self.is_color_changed = False
+        self.red_button = tk.Button(self.image_container, text="Red Channel", command=self.select_red_channel)
+        self.red_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+        self.red_button.config(relief=SUNKEN)
+        self.is_red_button = True
 
         # Green channel button
         self.color_mode = 'gray'
-        self.color_change_button = tk.Button(self.image_container, text="Green Channel", command=self.select_green_channel)
-        self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
-        self.is_color_changed = False
+        self.green_button= tk.Button(self.image_container, text="Green Channel", command=self.select_green_channel)
+        self.green_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+        self.is_green_button = False
         # Color change button
         self.color_mode = 'gray'
+        self.is_color_changed = False
         self.color_change_button = tk.Button(self.image_container, text="Change Color", command=self.change_color)
         self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
-        self.is_color_changed = False
+        
         
         # Zoom selection variables
         self.zoom_start_x = None
@@ -156,7 +159,7 @@ class ImageViewer(ttk.Frame):
         self.moyennage_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.moyennage_entry = ttk.Entry(self.parameters_container, width=10)
         self.moyennage_entry.pack(side=tk.LEFT, padx=10, pady=10)
-        self.moyennage_entry.bind("<Return>", self.temporal_averaging)
+        self.moyennage_entry.bind("<Return>", self.update_window_size)
 
         # Contrast adjustment
         self.contrast_value = 0
@@ -412,13 +415,14 @@ class ImageViewer(ttk.Frame):
             self.canvas.draw_idle()
             self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)  # Pack the button again
             
-    def update_window_size(self):
+    def update_window_size(self, val = None):
         # Get the window size for temporal averaging from the entry widget
         window_size = int(self.moyennage_entry.get())
+        print(window_size)
 
         # Check if the window size is valid
-        if window_size < 1 or window_size > len(self.image_paths):
-            return
+        #if window_size < 1 or window_size > len(self.image_paths):
+        #    return
 
         # Update the window size and reload images for temporal averaging
         self.window_size = window_size
@@ -433,16 +437,15 @@ class ImageViewer(ttk.Frame):
     #     # Perform temporal averaging and update the displayed image
     #     self.temporal_averaging()
 
-    def temporal_averaging(self, event=None):
+    def temporal_averaging(self):
         # Check if there are images for temporal averaging
-        if not self.images_for_temporal_averaging:
-            return
         nb_images = self.canaux[1].shape[0]
         for i in range(nb_images-self.window_size+1):
             self.normalized_image_array_green[i] = np.mean(self.normalized_image_array_green[i:i+self.window_size,:,:], axis = 0)
             self.normalized_image_array_red[i] = np.mean(self.normalized_image_array_red[i:i+self.window_size,:,:], axis = 0)
-
-
+        print('Temporal_avg')
+        self.canaux = {0: np.copy(self.normalized_image_array_green),
+                        1: np.copy(self.normalized_image_array_red)}
         # Perform temporal averaging
         # averaged_image = np.mean(self.images_for_temporal_averaging, axis=0)
 
@@ -526,11 +529,19 @@ class ImageViewer(ttk.Frame):
         #self.canvas.draw_idle()
         #Get the original image shape
         
-        if self.selected_channel == 1:
+        if self.is_green_button:
             self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
-            
-        if self.selected_channel == 2:
+        if self.is_red_button:
             self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
+ 
+        if(self.is_green_button and self.is_red_button):
+            self.axis.imshow(np.dstack((self.canaux[1][self.current_index], self.canaux[0][self.current_index], np.zeros_like(self.canaux[0][self.current_index]))))
+        # #     fig, self.axis = plt.subplots()
+        # #     red_img = np.dstack((self.canaux[0][self.current_index], np.zeros_like(self.canaux[0][self.current_index]), np.zeros_like(self.canaux[0][self.current_index])))
+        # #     green_img = np.dstack((np.zeros_like(self.canaux[1][self.current_index]), self.canaux[1][self.current_index], np.zeros_like(self.canaux[0][self.current_index])))
+
+        #     self.axis.imshow(red_img,alpha=1)
+        #     self.axis.imshow(green_img,alpha=0.57)
         self.canvas.draw_idle()
         """ ---------------------------------------------------------------------------
         # Reshape the image to its original shape
@@ -560,10 +571,20 @@ class ImageViewer(ttk.Frame):
         
     def select_green_channel(self):
         self.selected_channel = 1
+        if self.green_button.config('relief')[-1] == 'sunken':
+            self.green_button.config(relief=RAISED)
+        else:
+            self.green_button.config(relief=SUNKEN)
+        self.is_green_button = not self.is_green_button
         self.update_image()
 
     def select_red_channel(self):
         self.selected_channel = 2
+        if self.red_button.config('relief')[-1] == 'sunken':
+            self.red_button.config(relief=RAISED)
+        else:
+            self.red_button.config(relief=SUNKEN)
+        self.is_red_button = not self.is_red_button
         self.update_image()
 
     def change_color(self):

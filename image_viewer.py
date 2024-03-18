@@ -115,9 +115,9 @@ class ImageViewer(ttk.Frame):
         chart_icon = Image.open("chart.png")
         chart_icon = chart_icon.resize((20, 20), Image.LANCZOS)
         chart_photo = ImageTk.PhotoImage(chart_icon)
-        self.chart_button = ttk.Button(self.image_container, command=self.generate_chart, image=chart_photo, compound="left")
-        self.chart_button.image = chart_photo  # Keep a reference
-        self.chart_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+        #self.chart_button = ttk.Button(self.image_container, command=self.generate_chart, image=chart_photo, compound="left")
+        #self.chart_button.image = chart_photo  # Keep a reference
+        #self.chart_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
 
         # Segmentation variables
         self.segmentation_mode_enabled = False
@@ -127,6 +127,8 @@ class ImageViewer(ttk.Frame):
         self.y_in = []
         self.listes_graphs=[]
         self.id_color=-1 
+        self.marker_styles_point = ['b.', 'g.', 'r.', 'c.', 'm.', 'y.', 'k.', 'w.']
+        self.marker_styles_line = ['b-', 'g-', 'r-', 'c-', 'm-', 'y-', 'k-', 'w-']
 
         # Bind event for segmentation
         self.canvas.mpl_connect('button_press_event', self.on_segment_click)
@@ -193,6 +195,7 @@ class ImageViewer(ttk.Frame):
         self.current_index = 0 #Index for Slider
         self.reset_image()
         self.canaux = {}
+        self.sequence=imageio.volread(r'C:\Users\carlo\Downloads\transfer_6891262_files_d43c2e32\220728-S2_04_500mV.ome.tiff')
 
     def set_data_viewer(self, data_viewer):
         self.data_viewer = data_viewer
@@ -204,80 +207,7 @@ class ImageViewer(ttk.Frame):
         self.graph_viewer = graph_viewer
 
     def load_image(self, image_path):
-        # Load and display image using Matplotlib
-        #self.original_image = Image.open(image_path)
-        self.original_image = tifffile.imread(image_path)
-        #print("Original Image:", self.original_image.shape)
-        image_width, image_height = self.original_image[0,0].shape
-        #image_width, image_height = self.original_image.size
-        self.red_images = np.copy(self.original_image[1])
-        self.green_images = np.copy(self.original_image[0])
-        
-       # Placeholder image
-        self.placeholder_image = Image.new("RGB", (image_width, image_height), "lightgray")
-        self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
-   
-        # Create a container for the image and parameters with the image dimensions
-        self.image_container = tk.Frame(self, width=image_width, height=image_height)
-        self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True) 
-        
-        # Convert the original image to a NumPy array
-        #self.original_image_array = np.asarray(self.original_image)
-        # print("Original Image Array:", self.original_image_array.shape)
-        # print("Array size: ", len(self.original_image_array))
-
-
-        # Normalize the pixel values to the range [0, 1]
-        #min_value = np.min(self.original_image)
-        #max_value = np.max(self.original_image)
-        #self.normalized_image_array = (self.original_image - min_value) / (max_value - min_value)
-        min_value_red = np.min(self.red_images)
-        max_value_red = np.max(self.red_images)
-        self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
-        min_value_green = np.min(self.green_images)
-        max_value_green = np.max(self.green_images)
-        self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
-
-        self.canaux = {0: self.normalized_image_array_green,
-                        1: self.normalized_image_array_red}
-        del self.original_image
-        del self.red_images
-        del self.green_images
-        
-        # Check the shape of the normalized image array
-        # if len(self.normalized_image_array_red.shape) == 2:
-        #     # If the array is 2D, keep it as is
-        #     self.image = self.normalized_image_array_red.copy()
-        # elif len(self.normalized_image_array_red.shape) == 3:
-        #     # If the array is 3D (RGB), convert it to grayscale
-        #     self.image = np.mean(self.normalized_image_array_red, axis=-1).copy()
-        
-        # Reshape the 3D array to 2D for display
-        #displayed_image = self.image.reshape(self.normalized_image_array.shape)
-
-        # # Check if the displayed image has the correct shape
-        # if displayed_image.shape[0] == 0 or displayed_image.shape[1] == 0:
-        #     # Handle the case where the displayed image has incorrect dimensions
-        #     print("Error: Incorrect dimensions after reshaping.")
-        #     return
-        
-        # self.axis.imshow(displayed_image, cmap='gray')  # Display the reshaped 2D image
-        # self.canvas.draw_idle()
-        if self.selected_channel == 1:
-            self.image_display = self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
-        if self.selected_channel == 2:
-            self.image_display = self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
-
-        #self.axis.imshow(self.normalized_image_array, cmap='gray')  # Display the reshaped 2D image
-        #self.canvas.draw_idle()
-        
-        self.image_display = self.axis.imshow(self.normalized_image_array_red[self.current_index], cmap='gray')
-        #self.image_display = self.axis.imshow(self.original_image)
-        # Add a slider to scroll through images
-        ax_slider = self.figure.add_axes([0.2, 0.05, 0.65, 0.03])
-        self.slider = Slider(ax_slider, 'Image', 0, self.canaux[1].shape[0]-1, valinit=0)
-        print(self.canaux[1].shape[0])
-        self.slider.on_changed(self.update_image)
+        return
 
     def update_image(self,value = None):
         self.current_index = int(self.slider.val)
@@ -647,7 +577,6 @@ class ImageViewer(ttk.Frame):
  
  
     def on_segment_click(self, event):
-        marker_styles = ['b.', 'g.', 'r.', 'c.', 'm.', 'y.', 'k.', 'w.']
 
         # Check if segmentation mode is enabled
         if not self.segmentation_mode_enabled:
@@ -658,7 +587,7 @@ class ImageViewer(ttk.Frame):
         self.segment_y_points.append(event.ydata)
 
         # Draw a red dot at the clicked point
-        self.axis.plot(event.xdata, event.ydata, marker_styles[self.id_color])
+        self.axis.plot(event.xdata, event.ydata, self.marker_styles_point[self.id_color])
         self.canvas.draw()
 
     ##### !!!THIS METHOD NEEDS TO STAY HERE. NOT TESTED YET USING TIFFFILE TO EXTRACT THE IMAGES!!!
@@ -669,11 +598,16 @@ class ImageViewer(ttk.Frame):
     #     self.canvas.draw()
     ##### !!!THIS METHOD NEEDS TO STAY HERE. NOT TESTED YET USING TIFFFILE TO EXTRACT THE IMAGES!!!
 
-    def draw_segments_from_csv(self, coordinates):
+    def reset_context_for_segments_csv(self):
+        self.id_color = -1
         #self.clear_segments()
+
+    def draw_segments_from_csv(self, coordinates):
         if (len(coordinates) < 3):
             messagebox.showerror("Error", "Not enough points to form a segment in one of the ROIs imported.")
             return
+
+        self.update_color()
         
         segment_x_points = []
         segment_y_points = []
@@ -682,11 +616,10 @@ class ImageViewer(ttk.Frame):
             segment_x_points.append(pair[0])
             segment_y_points.append(pair[1])
         
-        self.axis.plot(segment_x_points, segment_y_points, 'r-')
+        self.axis.plot(segment_x_points, segment_y_points, self.marker_styles_line[self.id_color])
         self.canvas.draw()
 
     def process_segments(self):
-        color_styles = ['b-', 'g-', 'r-', 'c-', 'm-', 'y-', 'k-', 'w-']
         if len(self.segment_x_points) < 3:
             return  # At least 3 points needed to form a segment
 
@@ -699,7 +632,7 @@ class ImageViewer(ttk.Frame):
         segment_y_array = np.array(self.segment_y_points)
 
         # Draw the closed segment on the displayed image
-        self.axis.plot(segment_x_array, segment_y_array, color_styles[self.id_color])
+        self.axis.plot(segment_x_array, segment_y_array, self.marker_styles_line[self.id_color])
         self.canvas.draw()
 
         # Get coordinates of points inside the polygon
@@ -714,18 +647,10 @@ class ImageViewer(ttk.Frame):
             'segment_y_array': segment_y_array,
             'mean_values': mean_values,
         }
-        print(len(mean_values))
 
         self.listes_graphs.append((segment_data['mean_values']))
         # Pass the data to the DataViewer
         self.data_viewer.process_segment_data(segment_data)
-
-        print('taille X : ', len(list(range(0, len(self.listes_graphs[0])))))
-        print('taille Y : ',len(self.listes_graphs[0])) 
-         # Pass the data to the GraphViewer
-        self.graph_viewer.process_to_graph(list(range(0, len(self.listes_graphs[0]))),self.listes_graphs)
-
- 
 
     def in_polygon(self, test):
         x, y = test
@@ -764,17 +689,16 @@ class ImageViewer(ttk.Frame):
     def mean_over_time(self):
         try:
             # Lire toutes les images du fichier TIFF
-            images = imageio.volread(r'C:\Users\tombo\Downloads\220728-S2_04_500mV.ome.tiff')
-            print("Nbr d'images :",(len(images[1])))# canal vert ou rouge, jsp
+            #images = imageio.volread(r'C:\Users\carlo\Downloads\transfer_6891262_files_d43c2e32\220728-S2_04_500mV.ome.tiff')
+            #print("Nbr d'images :",(len(images[1])))# canal vert ou rouge, jsp
             # Initialiser une liste pour stocker les moyennes au fil du temps
             mean_values = []
-
+            images = self.sequence
             # Parcourir toutes les images et calculer la moyenne des valeurs des pixels
             for image in images[0]:
-                mean_value = self.mean(image)
+                mean_value = 2**16-self.mean(image)
                 mean_values.append(mean_value)
 
-            # Retourner la liste des moyennes au fil du temps
             return mean_values
 
         except Exception as e:
@@ -788,29 +712,19 @@ class ImageViewer(ttk.Frame):
         else : 
             self.id_color=0
 
-    
-    # def write_to_csv(self, data, csv_filename='dataset2.csv'):
-    # # Write to the CSV file
-    #     with open(csv_filename, mode='w', newline='') as csv_file:
-    #         writer = csv.writer(csv_file)
+    # def display_tag(self):
+    #     texte = "ROI 1"
 
-    #         # Write data from lists
-    #         for row in data:
-    #             writer.writerow(row)
-    #     print(f"Data written to '{csv_filename}.csv' successfully.")
-        
-    def generate_chart(self):
-        # Generate a chart based on the points from the segmentation
-        if len(self.segment_points) < 3:
-            return  # At least 3 points needed to form a chart
+    #     # Récupérer les dimensions de l'image
+    #     largeur_image = self.image.shape[1]
+    #     hauteur_image = self.image.shape[0]
 
-        # Extract x and y coordinates from segment points
-        x_coordinates, y_coordinates = zip(*self.segment_points)
+    #     # Définir la position du texte (ici, centré)
+    #     position_x = largeur_image / 2
+    #     position_y = hauteur_image / 2
 
-        # Create a scatter plot using Matplotlib
-        plt.scatter(x_coordinates, y_coordinates, color='blue')
-        plt.title("Chart Generated from Segmentation Points")
-        plt.xlabel("X-coordinate")
-        plt.ylabel("Y-coordinate")
-        plt.gca().invert_yaxis()
-        plt.show()
+    #     # Ajouter le texte sur l'axe Matplotlib
+    #     self.axis.text(position_x, position_y, texte, color='black', fontsize=12, ha='center', va='center')
+
+    #     # Rafraîchir l'affichage pour voir les modifications
+    #     plt.draw()

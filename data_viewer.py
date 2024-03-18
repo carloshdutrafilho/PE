@@ -8,9 +8,11 @@ class DataViewer(ttk.Frame):
     def __init__(self, master, GUI=None):
         super().__init__(master)
         self.GUI = GUI
+        self.data_viewer = None
 
         self.ROI_data = {}
         self.selected_ROI_index = 0
+        self.listes_graphs = []
 
         tree_frame = ttk.Frame(self)
         tree_frame.pack(side=tk.TOP, padx=10, pady=10)
@@ -77,8 +79,9 @@ class DataViewer(ttk.Frame):
 
         self.update_ROI_combobox()
         self.selected_ROI_var.set(self.selected_ROI_index)
+        self.generate_graphs()
         self.new_selection_display_data()
-    
+        
     def data_tree_clean_rebuild(self):
         self.tree.delete(*self.tree.get_children())
         self.tree.heading('#1', text='Index')
@@ -145,6 +148,7 @@ class DataViewer(ttk.Frame):
         self.ROI_data = {}
         self.current_page = {}
         self.total_pages = {}
+        self.GUI.reset_context_for_segments_csv()
 
         # Process the new data
         for row in data:
@@ -157,13 +161,21 @@ class DataViewer(ttk.Frame):
                 self.ROI_data[roi_index] = {'coord': coord, 
                                             'means': means }
                 self.GUI.draw_segments_from_csv(coord)
-                
+                # self.listes_graphs.append((self.ROI_data[roi_index]['means'][1]))
+                # self.graph_viewer.process_to_graph(list(range(0, len(self.listes_graphs[0]))),self.listes_graphs)
+
                 self.current_page[roi_index] = 0
                 self.total_pages[roi_index] = (len(self.ROI_data[roi_index]['means'][1]) / self.page_size) + 1
 
         self.selected_ROI_index = 1
         self.update_ROI_combobox()
         self.display_data()
+        self.generate_graphs()
+    
+    def generate_graphs(self):
+        self.graph_viewer.set_ROI_data(self.ROI_data)
+        self.graph_viewer.update_displayed_ROI(self.selected_ROI_index)
+        self.graph_viewer.process_to_graph()
 
     def update_ROI_combobox(self):
         self.ROI_combobox['values'] = list(self.ROI_data.keys())
@@ -172,6 +184,7 @@ class DataViewer(ttk.Frame):
     def handle_combobox_selection(self, event):
         self.selected_ROI_index = int(self.selected_ROI_var.get())
         self.new_selection_display_data()
+        self.graph_viewer.update_displayed_ROI(self.selected_ROI_index)
 
     def show_previous_page(self):
         if self.current_page[self.selected_ROI_index] > 0:
@@ -185,3 +198,6 @@ class DataViewer(ttk.Frame):
     
     def get_project_path(self):
         return self.GUI.get_project_path()
+
+    def set_graph_viewer(self, graph_viewer):
+        self.graph_viewer = graph_viewer

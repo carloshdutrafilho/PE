@@ -23,6 +23,14 @@ class ImageViewer(ttk.Frame):
 
         self.current_time = tk.DoubleVar()
         self.current_time.set(0)
+        
+        # Add a variable to track whether panning mode is enabled
+        self.panning_mode_enabled = False
+        self.panning_start_x = None
+        self.panning_start_y = None
+        
+        # Add a variable to track whether the user is currently zooming
+        self.zooming = False
 
         #Image array
         self.normalized_image_array = np.array([])
@@ -39,10 +47,15 @@ class ImageViewer(ttk.Frame):
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         # Create a Matplotlib figure and axis for image display
-        self.figure = Figure(figsize=(5, 5))
+        #self.figure = Figure(figsize=(5, 5))
+        self.figure = plt.Figure(figsize=(5, 5))
         self.axis = self.figure.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.figure, master=self.image_container)
         self.canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        ###
+        self.canvas.draw()
+        ###
         
         # Label to display current parameters
         self.parameters_label = tk.Label(self.image_container, text="Contrast: 0\nBrightness: 0\nThreshold Min: 0\nThreshold Max: 0  ", bd=1, relief=tk.SOLID, width=20, height=4)
@@ -66,12 +79,26 @@ class ImageViewer(ttk.Frame):
         self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
         self.is_color_changed = False
         
+        # Bind events for zoom using mouse wheel
+        self.canvas.mpl_connect('scroll_event', self.on_scroll)
+        
+        # Bind events for panning
+        self.canvas.mpl_connect('button_press_event', self.on_pan_press)
+        self.canvas.mpl_connect('motion_notify_event', self.on_pan_motion)
+        self.canvas.mpl_connect('button_release_event', self.on_pan_release)
+        
+        # Bind events for zoom start and end
+        self.canvas.mpl_connect('button_press_event', self.on_zoom_start)
+        self.canvas.mpl_connect('button_release_event', self.on_zoom_end)
+        
         # Zoom selection variables
         self.zoom_start_x = None
         self.zoom_start_y = None
         self.zoom_rect = None
         # Add a variable to track zoom mode
         self.zoom_mode_enabled = False
+        
+        self.zoom_mode = False  # Initialize zoom_mode attribute
         
         # Bind events for zoom selection
         self.canvas.mpl_connect('button_press_event', self.on_press)
@@ -92,7 +119,7 @@ class ImageViewer(ttk.Frame):
         self.zoom_out_icon = ImageTk.PhotoImage(zoom_out_image)
         
         # Zoom in button
-        self.zoom_in_button = ttk.Button(self.image_container, image=self.zoom_in_icon, command=self.toggle_zoom_mode)
+        self.zoom_in_button = ttk.Button(self.image_container, image=self.zoom_in_icon, command=self.zoom_in)
         self.zoom_in_button.image = self.zoom_in_icon  # Keep a reference
         self.zoom_in_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
 
@@ -100,7 +127,6 @@ class ImageViewer(ttk.Frame):
         self.zoom_out_button = ttk.Button(self.image_container, image=self.zoom_out_icon, command=self.zoom_out)
         self.zoom_out_button.image = self.zoom_out_icon  # Keep a reference
         self.zoom_out_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
-        
         
         # Segmentation button with icon
         segmentation_icon = Image.open("segmentation.png")
@@ -132,10 +158,12 @@ class ImageViewer(ttk.Frame):
         self.canvas.mpl_connect('button_press_event', self.on_segment_click)
         
         # Zoom factor for zooming in and out
-        self.zoom_factor = 1.2
+        self.zoom_factor = 1.1
 
         # Set initial zoom level
         self.current_zoom_level = 1.0
+        self.previous_x = None
+        self.previous_y = None
         
         # Slider for scrolling through images/Time
         #self.image_slider = ttk.Scale(self, from_=0, to=len(self.normalized_image_array)-1, variable=self.current_time, orient=tk.HORIZONTAL, command=self.update_image_slider)
@@ -219,6 +247,7 @@ class ImageViewer(ttk.Frame):
    
         # Create a container for the image and parameters with the image dimensions
         self.image_container = tk.Frame(self, width=image_width, height=image_height)
+        #self.image_container = ttk.Frame(self)
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True) 
         
         # Convert the original image to a NumPy array
@@ -555,32 +584,72 @@ class ImageViewer(ttk.Frame):
         self.color_mode = 'gray_r' if self.is_color_changed else 'gray'
         self.update_displayed_image()
         self.color_change_button.config(text="Change Color" if not self.is_color_changed else "Revert Color")
-        
+
+## START ZOOM        
     def zoom_in(self):
+        ''' OLD METHOD
         # Zoom in the image
         self.current_zoom_level *= self.zoom_factor
         self.update_displayed_image()
+        '''
+        xlim = self.axis.get_xlim()  # Get current x-axis limits
+        ylim = self.axis.get_ylim()  # Get current y-axis limits
+        zoom_factor = 1.1  # Zoom factor
+        new_xlim = (xlim[0] / zoom_factor, xlim[1] / zoom_factor)  # New x-axis limits
+        new_ylim = (ylim[0] / zoom_factor, ylim[1] / zoom_factor)  # New y-axis limits
+        self.axis.set_xlim(new_xlim)  # Set new x-axis limits
+        self.axis.set_ylim(new_ylim)  # Set new y-axis limits
+        self.canvas.draw_idle()  # Redraw canvas
+        
 
     def zoom_out(self):
+        '''OLD METHOD
         # Zoom out the image
         self.current_zoom_level /= self.zoom_factor
         self.update_displayed_image()
-    
+        '''
+        xlim = self.axis.get_xlim()  # Get current x-axis limits
+        ylim = self.axis.get_ylim()  # Get current y-axis limits
+        zoom_factor = 1.1  # Zoom factor
+        new_xlim = (xlim[0] * zoom_factor, xlim[1] * zoom_factor)  # New x-axis limits
+        new_ylim = (ylim[0] * zoom_factor, ylim[1] * zoom_factor)  # New y-axis limits
+        self.axis.set_xlim(new_xlim)  # Set new x-axis limits
+        self.axis.set_ylim(new_ylim)  # Set new y-axis limits
+        self.canvas.draw_idle()  # Redraw canvas
+        
+    def reset_zoom(self):
+        self.current_zoom_level = 1.0
+        self.axis.set_xlim(0, 1)
+        self.axis.set_ylim(0, 1)
+        self.canvas.draw_idle()
+        
     def toggle_zoom_mode(self):
         # Toggle the zoom mode on/off
-        self.zoom_mode_enabled = not self.zoom_mode_enabled
+        #self.zoom_mode_enabled = not self.zoom_mode_enabled
+        self.zoom_mode = not self.zoom_mode
+        # Reset panning mode when zoom mode is toggled
+        self.panning_mode_enabled = False
             
     # Zoom Selection
     def on_press(self, event):
+        ##### OLD METHOD
+        
         # Check if zoom mode is enabled
-        if not self.zoom_mode_enabled:
-            return
+        #if not self.zoom_mode_enabled:
+        #    return
 
         # Store the starting position for zoom selection
-        self.zoom_start_x = event.xdata
-        self.zoom_start_y = event.ydata
+        #self.zoom_start_x = event.xdata
+        #self.zoom_start_y = event.ydata
+        
+        #####
+        self.previous_x = event.x
+        self.previous_y = event.y
+        
 
     def on_motion(self, event):
+        
+        ''' OLD METHOD
         
         # Check if zoom mode is enabled
         if not self.zoom_mode_enabled:
@@ -592,17 +661,66 @@ class ImageViewer(ttk.Frame):
             current_y = event.ydata
 
             if self.zoom_rect:
-                self.axis.patches.remove(self.zoom_rect)
+                #self.axis.patches.remove(self.zoom_rect)
+                self.zoom_rect.set_width(current_x - self.zoom_start_x)
+                self.zoom_rect.set_height(current_y - self.zoom_start_y)
+                self.zoom_rect.set_xy((self.zoom_start_x, self.zoom_start_y))
 
-            width = current_x - self.zoom_start_x
-            height = current_y - self.zoom_start_y
+            else:            
 
-            self.zoom_rect = plt.Rectangle((self.zoom_start_x, self.zoom_start_y), width, height,
+                width = current_x - self.zoom_start_x
+                height = current_y - self.zoom_start_y
+
+                self.zoom_rect = plt.Rectangle((self.zoom_start_x, self.zoom_start_y), width, height,
                                        linewidth=1, edgecolor='r', facecolor='none')
-            self.axis.add_patch(self.zoom_rect)
-            self.canvas.draw()
+                self.axis.add_patch(self.zoom_rect)
+            
+            #self.canvas.draw()
+            self.canvas.draw_idle()
 
+        '''
+        '''
+        if event.button == "None":
+            return
+
+        if self.previous_x is None or self.previous_y is None:
+            return
+
+        if event.button == 1:
+            dx = event.x - self.previous_x
+            dy = event.y - self.previous_y
+
+            self.axis.set_xlim(self.axis.get_xlim() - dx * 0.01)
+            self.axis.set_ylim(self.axis.get_ylim() - dy * 0.01)
+            self.canvas.draw_idle()
+
+        self.previous_x = event.x
+        self.previous_y = event.y
+        '''
+        # Check if zoom mode is enabled and if the user is zooming
+        if self.zoom_mode and self.zooming:
+            # Calculate the difference in x and y coordinates
+            dx = event.x - self.previous_x
+            dy = event.y - self.previous_y
+        
+            # Update the x-axis and y-axis limits accordingly
+            xlim = self.axis.get_xlim()
+            ylim = self.axis.get_ylim()
+            self.axis.set_xlim(xlim[0] - dx * 0.01, xlim[1] - dx * 0.01)
+            self.axis.set_ylim(ylim[0] - dy * 0.01, ylim[1] - dy * 0.01)
+        
+            # Redraw the canvas
+            self.canvas.draw_idle()
+    
+        # Update the previous x and y coordinates
+        self.previous_x = event.x
+        self.previous_y = event.y
+        
+    
+    
     def on_release(self, event):
+        ''' OLD METHOD
+        
         # Check if zoom mode is enabled
         if not self.zoom_mode_enabled:
             return
@@ -628,7 +746,81 @@ class ImageViewer(ttk.Frame):
             self.zoom_start_x = None
             self.zoom_start_y = None
             self.zoom_rect = None
+        '''
+        self.previous_x = None
+        self.previous_y = None
+        
             
+            
+    def on_scroll(self, event):
+        # Check if zoom mode is enabled
+        if not self.zoom_mode:
+            return
+        # Get the current zoom level
+        zoom_factor = 1.1 if event.button == 'up' else 1 / 1.1
+        self.current_zoom_level *= zoom_factor
+        '''
+        xlim = self.axis.get_xlim()
+        ylim = self.axis.get_ylim()
+        self.axis.set_xlim(xlim[0] * zoom_factor, xlim[1] * zoom_factor)
+        self.axis.set_ylim(ylim[0] * zoom_factor, ylim[1] * zoom_factor)
+        '''
+        xlim = self.axis.get_xlim()
+        ylim = self.axis.get_ylim()
+        center_x = (xlim[0] + xlim[1]) / 2
+        center_y = (ylim[0] + ylim[1]) / 2
+        new_width = (xlim[1] - xlim[0]) * zoom_factor
+        new_height = (ylim[1] - ylim[0]) * zoom_factor
+        self.axis.set_xlim(center_x - new_width / 2, center_x + new_width / 2)
+        self.axis.set_ylim(center_y - new_height / 2, center_y + new_height / 2)
+       
+        
+        self.canvas.draw_idle()
+        #self.update_displayed_image()
+
+    def on_pan_press(self, event):
+        # Check if panning mode is enabled
+        if not self.panning_mode_enabled:
+            return
+        self.panning_start_x = event.xdata
+        self.panning_start_y = event.ydata
+
+    def on_pan_motion(self, event):
+        # Check if panning mode is enabled and a starting point is set
+        if not self.panning_mode_enabled or self.panning_start_x is None or self.panning_start_y is None:
+            return
+        current_x = event.xdata
+        current_y = event.ydata
+        if current_x is not None and current_y is not None:
+            delta_x = current_x - self.panning_start_x
+            delta_y = current_y - self.panning_start_y
+            self.axis.set_xlim(self.axis.get_xlim() - delta_x)
+            self.axis.set_ylim(self.axis.get_ylim() - delta_y)
+            self.canvas.draw_idle()
+
+    def on_pan_release(self, event):
+        # Reset panning variables
+        self.panning_start_x = None
+        self.panning_start_y = None
+        
+    def on_zoom_start(self, event):
+        # Check if zoom mode is enabled
+        if self.zoom_mode_enabled:
+            # Set zooming flag to True
+            self.zooming = True
+            # Change cursor to a hand
+            self.canvas.config(cursor='hand')
+
+    def on_zoom_end(self, event):
+        # Check if zoom mode was active
+        if self.zooming:
+            # Reset zooming flag
+            self.zooming = False
+            # Restore cursor to default
+            self.canvas.config(cursor='')    
+## END ZOOM        
+        
+        
     # SEGMENTATION
     def toggle_segmentation_mode(self):
         # Toggle the segmentation mode on/off

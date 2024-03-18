@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import *
 from PIL import Image, ImageTk
 import os
 from matplotlib.figure import Figure
@@ -17,12 +18,26 @@ import csv
 class ImageViewer(ttk.Frame):
     def __init__(self, master):
         super().__init__(master)
+        self.canaux = {0:np.zeros((1,1,1)), 1:np.zeros((1,1,1))}
+        self.current_index = 0 #Index for Slider
+        self.normalized_image_array_red = np.zeros((1,1,1))
+        self.normalized_image_array_green = np.zeros((1,1,1))
+
+        
 
         self.data_viewer = None
         self.graph_viewer=None
 
         self.current_time = tk.DoubleVar()
         self.current_time.set(0)
+        
+        # Add a variable to track whether panning mode is enabled
+        self.panning_mode_enabled = False
+        self.panning_start_x = None
+        self.panning_start_y = None
+        
+        # Add a variable to track whether the user is currently zooming
+        self.zooming = False
 
         #Image array
         self.normalized_image_array = np.array([])
@@ -39,10 +54,15 @@ class ImageViewer(ttk.Frame):
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         # Create a Matplotlib figure and axis for image display
-        self.figure = Figure(figsize=(5, 5))
+        #self.figure = Figure(figsize=(5, 5))
+        self.figure = plt.Figure(figsize=(5, 5))
         self.axis = self.figure.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.figure, master=self.image_container)
         self.canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        ###
+        self.canvas.draw()
+        ###
         
         # Label to display current parameters
         self.parameters_label = tk.Label(self.image_container, text="Contrast: 0\nBrightness: 0\nThreshold Min: 0\nThreshold Max: 0  ", bd=1, relief=tk.SOLID, width=20, height=4)
@@ -51,20 +71,34 @@ class ImageViewer(ttk.Frame):
         self.selected_channel = 2
         # Red channel button
         self.color_mode = 'gray'
-        self.color_change_button = tk.Button(self.image_container, text="Red Channel", command=self.select_red_channel)
-        self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
-        self.is_color_changed = False
+        self.red_button = tk.Button(self.image_container, text="Red Channel", command=self.select_red_channel)
+        self.red_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+        self.red_button.config(relief=SUNKEN)
+        self.is_red_button = True
 
         # Green channel button
         self.color_mode = 'gray'
-        self.color_change_button = tk.Button(self.image_container, text="Green Channel", command=self.select_green_channel)
-        self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
-        self.is_color_changed = False
+        self.green_button= tk.Button(self.image_container, text="Green Channel", command=self.select_green_channel)
+        self.green_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
+        self.is_green_button = False
         # Color change button
         self.color_mode = 'gray'
+        self.is_color_changed = False
         self.color_change_button = tk.Button(self.image_container, text="Change Color", command=self.change_color)
         self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
-        self.is_color_changed = False
+        
+        
+        # Bind events for zoom using mouse wheel
+        self.canvas.mpl_connect('scroll_event', self.on_scroll)
+        
+        # Bind events for panning
+        self.canvas.mpl_connect('button_press_event', self.on_pan_press)
+        self.canvas.mpl_connect('motion_notify_event', self.on_pan_motion)
+        self.canvas.mpl_connect('button_release_event', self.on_pan_release)
+        
+        # Bind events for zoom start and end
+        self.canvas.mpl_connect('button_press_event', self.on_zoom_start)
+        self.canvas.mpl_connect('button_release_event', self.on_zoom_end)
         
         # Zoom selection variables
         self.zoom_start_x = None
@@ -72,6 +106,8 @@ class ImageViewer(ttk.Frame):
         self.zoom_rect = None
         # Add a variable to track zoom mode
         self.zoom_mode_enabled = False
+        
+        self.zoom_mode = False  # Initialize zoom_mode attribute
         
         # Bind events for zoom selection
         self.canvas.mpl_connect('button_press_event', self.on_press)
@@ -92,7 +128,7 @@ class ImageViewer(ttk.Frame):
         self.zoom_out_icon = ImageTk.PhotoImage(zoom_out_image)
         
         # Zoom in button
-        self.zoom_in_button = ttk.Button(self.image_container, image=self.zoom_in_icon, command=self.toggle_zoom_mode)
+        self.zoom_in_button = ttk.Button(self.image_container, image=self.zoom_in_icon, command=self.zoom_in)
         self.zoom_in_button.image = self.zoom_in_icon  # Keep a reference
         self.zoom_in_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
 
@@ -100,7 +136,6 @@ class ImageViewer(ttk.Frame):
         self.zoom_out_button = ttk.Button(self.image_container, image=self.zoom_out_icon, command=self.zoom_out)
         self.zoom_out_button.image = self.zoom_out_icon  # Keep a reference
         self.zoom_out_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
-        
         
         # Segmentation button with icon
         segmentation_icon = Image.open("segmentation.png")
@@ -134,10 +169,12 @@ class ImageViewer(ttk.Frame):
         self.canvas.mpl_connect('button_press_event', self.on_segment_click)
         
         # Zoom factor for zooming in and out
-        self.zoom_factor = 1.2
+        self.zoom_factor = 1.1
 
         # Set initial zoom level
         self.current_zoom_level = 1.0
+        self.previous_x = None
+        self.previous_y = None
         
         # Slider for scrolling through images/Time
         #self.image_slider = ttk.Scale(self, from_=0, to=len(self.normalized_image_array)-1, variable=self.current_time, orient=tk.HORIZONTAL, command=self.update_image_slider)
@@ -152,7 +189,7 @@ class ImageViewer(ttk.Frame):
         self.moyennage_label.pack(side=tk.LEFT, padx=5, pady=10)
         self.moyennage_entry = ttk.Entry(self.parameters_container, width=10)
         self.moyennage_entry.pack(side=tk.LEFT, padx=10, pady=10)
-        self.moyennage_entry.bind("<Return>", self.temporal_averaging)
+        self.moyennage_entry.bind("<Return>", self.update_window_size)
 
         # Contrast adjustment
         self.contrast_value = 0
@@ -170,17 +207,17 @@ class ImageViewer(ttk.Frame):
 
         # Threshold adjustment
         self.threshold_min = 0
-        self.threshold_max = 1
+        self.threshold_max = 255
         self.threshold_min_label = ttk.Label(self.parameters_container, text="Min Threshold=")
         self.threshold_min_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.threshold_min_slider = ttk.Scale(self.parameters_container, from_=0, to=0.98, orient=tk.HORIZONTAL, command=self.update_threshold)
+        self.threshold_min_slider = ttk.Scale(self.parameters_container, from_=0, to=254, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_min_slider.pack(side=tk.LEFT, padx=10, pady=10)
 
         self.threshold_max_label = ttk.Label(self.parameters_container, text="Max Threshold=")
         self.threshold_max_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.threshold_max_slider = ttk.Scale(self.parameters_container, from_=00.2, to=1, orient=tk.HORIZONTAL, command=self.update_threshold)
+        self.threshold_max_slider = ttk.Scale(self.parameters_container, from_=1, to=255, orient=tk.HORIZONTAL, command=self.update_threshold)
         self.threshold_max_slider.pack(side=tk.LEFT, padx=10, pady=10)
-        self.threshold_max_slider.set(1)
+        self.threshold_max_slider.set(255)
         
         # Temporal averaging variables
         self.window_size = 1  # Initial window size
@@ -189,10 +226,8 @@ class ImageViewer(ttk.Frame):
         # Keep a reference to the original image for reset functionality
         self.original_image = None
         self.image = None
-        self.red_images = None
-        self.green_images = None
         self.color_mode = 'gray'  # Initial color mode
-        self.current_index = 0 #Index for Slider
+        
         self.reset_image()
         self.canaux = {}
         self.sequence=imageio.volread(r'C:\Users\carlo\Downloads\transfer_6891262_files_d43c2e32\220728-S2_04_500mV.ome.tiff')
@@ -207,7 +242,95 @@ class ImageViewer(ttk.Frame):
         self.graph_viewer = graph_viewer
 
     def load_image(self, image_path):
-        return
+        # Load and display image using Matplotlib
+        #self.original_image = Image.open(image_path)
+        self.original_image = tifffile.imread(image_path)
+        #print("Original Image:", self.original_image.shape)
+        image_width, image_height = self.original_image[0,0].shape
+        #image_width, image_height = self.original_image.size
+        
+        
+
+        red_images = np.copy(self.original_image[1])
+        green_images = np.copy(self.original_image[0])
+        del self.original_image
+       # Placeholder image
+        self.placeholder_image = Image.new("RGB", (image_width, image_height), "lightgray")
+        self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
+   
+        # Create a container for the image and parameters with the image dimensions
+        self.image_container = tk.Frame(self, width=image_width, height=image_height)
+        #self.image_container = ttk.Frame(self)
+        self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True) 
+        
+        # Convert the original image to a NumPy array
+        #self.original_image_array = np.asarray(self.original_image)
+        # print("Original Image Array:", self.original_image_array.shape)
+        # print("Array size: ", len(self.original_image_array))
+
+
+        # Normalize the pixel values to the range [0, 1]
+        #min_value = np.min(self.original_image)
+        #max_value = np.max(self.original_image)
+        # #self.normalized_image_array = (self.original_image - min_value) / (max_value - min_value)
+        # min_value_red = np.min(self.red_images)
+        # max_value_red = np.max(self.red_images)
+        
+        min_value_red = np.percentile(red_images[0],0.1)
+        max_value_red = np.percentile(red_images[0],99.8)
+        # self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
+        self.normalized_image_array_red = (255*np.clip(red_images,min_value_red,max_value_red)/(max_value_red- min_value_red)).astype(np.uint8)
+        
+        del red_images
+        # min_value_green = np.min(self.green_images)
+        # max_value_green = np.max(self.green_images)
+        min_value_green = np.percentile(green_images[0],0.1)
+        max_value_green = np.percentile(green_images[0],99.8)
+        # self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
+        self.normalized_image_array_green = (255*np.clip(green_images,min_value_green,max_value_green)/(max_value_green- min_value_green)).astype(np.uint8)
+        
+        if np.mean(green_images[0])>2**15: #Si le fond de l'image est blanc, le convertir en noir
+            self.normalized_image_array_green = 255- self.normalized_image_array_green
+            self.normalized_image_array_red = 255- self.normalized_image_array_red
+        del green_images
+        self.canaux = {0: np.copy(self.normalized_image_array_green),
+                        1: np.copy(self.normalized_image_array_red)}
+        
+        
+        # Check the shape of the normalized image array
+        # if len(self.normalized_image_array_red.shape) == 2:
+        #     # If the array is 2D, keep it as is
+        #     self.image = self.normalized_image_array_red.copy()
+        # elif len(self.normalized_image_array_red.shape) == 3:
+        #     # If the array is 3D (RGB), convert it to grayscale
+        #     self.image = np.mean(self.normalized_image_array_red, axis=-1).copy()
+        
+        # Reshape the 3D array to 2D for display
+        #displayed_image = self.image.reshape(self.normalized_image_array.shape)
+
+        # # Check if the displayed image has the correct shape
+        # if displayed_image.shape[0] == 0 or displayed_image.shape[1] == 0:
+        #     # Handle the case where the displayed image has incorrect dimensions
+        #     print("Error: Incorrect dimensions after reshaping.")
+        #     return
+        
+        # self.axis.imshow(displayed_image, cmap='gray')  # Display the reshaped 2D image
+        # self.canvas.draw_idle()
+        if self.selected_channel == 1:
+            self.image_display = self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
+        if self.selected_channel == 2:
+            self.image_display = self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
+
+        #self.axis.imshow(self.normalized_image_array, cmap='gray')  # Display the reshaped 2D image
+        #self.canvas.draw_idle()
+        
+        self.image_display = self.axis.imshow(self.normalized_image_array_red[self.current_index], cmap='gray')
+        #self.image_display = self.axis.imshow(self.original_image)
+        # Add a slider to scroll through images
+        ax_slider = self.figure.add_axes([0.2, 0.05, 0.65, 0.03])
+        self.slider = Slider(ax_slider, 'Image', 0, self.canaux[1].shape[0]-1, valinit=0)
+        print(self.canaux[1].shape[0])
+        self.slider.on_changed(self.update_image)
 
     def update_image(self,value = None):
         self.current_index = int(self.slider.val)
@@ -220,7 +343,7 @@ class ImageViewer(ttk.Frame):
         self.update_displayed_image()
         
         # Initialize images_for_temporal_averaging list with the first image
-        self.images_for_temporal_averaging = [self.canaux[1]]
+        
 
 
     def update_time_slider(self, max_time):
@@ -254,9 +377,9 @@ class ImageViewer(ttk.Frame):
     def contrast(self):
         # Calculate the contrasted image by multiplying by the contrast value
         if self.selected_channel == 1:
-            self.canaux[0][self.current_index] = np.clip(self.normalized_image_array_green[self.current_index] * (1.0 + self.contrast_value), 0, 1)  # Normalize to [0, 1]
+            self.canaux[0][self.current_index] = np.clip(self.normalized_image_array_green[self.current_index] * (1.0 + self.contrast_value), 0, 255)  # Normalize to [0, 1]
         elif self.selected_channel == 2:
-            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] * (1.0 + self.contrast_value), 0, 1)  # Normalize to [0, 1]
+            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] * (1.0 + self.contrast_value), 0, 255)  # Normalize to [0, 1]
 
     
     def update_brightness(self, *args):
@@ -282,9 +405,9 @@ class ImageViewer(ttk.Frame):
         # Calculate the image with adjusted brightness by adding the brightness value
         #image_brightened = np.clip(image + brightness_value / 255, 0, 1)  # Normalize to [0, 1]
         if self.selected_channel == 1:
-            self.canaux[0][self.current_index] =  np.clip(self.normalized_image_array_green[self.current_index] + self.brightness_value/100, 0, 1)  # Normalize to [0, 1]
+            self.canaux[0][self.current_index] =  np.clip(self.normalized_image_array_green[self.current_index] + self.brightness_value, 0, 255)  # Normalize to [0, 1]
         elif self.selected_channel == 2:
-            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] + self.brightness_value/100, 0, 1)  # Normalize to [0, 1]
+            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] + self.brightness_value, 0, 255)  # Normalize to [0, 1]
         # # Print debug information
         # print("Original Image Array:")
         # print(self.normalized_image_array)
@@ -324,49 +447,48 @@ class ImageViewer(ttk.Frame):
             self.canvas.draw_idle()
             self.color_change_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)  # Pack the button again
             
-    def update_window_size(self):
+    def update_window_size(self, val = None):
         # Get the window size for temporal averaging from the entry widget
         window_size = int(self.moyennage_entry.get())
+        print(window_size)
 
         # Check if the window size is valid
-        if window_size < 1 or window_size > len(self.image_paths):
-            return
+        #if window_size < 1 or window_size > len(self.image_paths):
+        #    return
 
         # Update the window size and reload images for temporal averaging
         self.window_size = window_size
-        self.load_images_for_temporal_averaging()
-
-            
-    def load_images_for_temporal_averaging(self):
-        # Load the images within the specified window for temporal averaging
-        start_time = int(self.current_time.get())
-        end_time = min(start_time + self.window_size, len(self.image_paths))
-
-        images_to_average = [np.array(Image.open(self.image_paths[i])) for i in range(start_time, end_time)]
-        
-
-        # Update the list of images for temporal averaging
-        self.images_for_temporal_averaging = images_to_average
-
-        # Perform temporal averaging and update the displayed image
         self.temporal_averaging()
 
-    def temporal_averaging(self, event=None):
+            
+    # def load_images_for_temporal_averaging(self):
+    #     # Load the images within the specified window for temporal averaging
+        
+
+        
+    #     # Perform temporal averaging and update the displayed image
+    #     self.temporal_averaging()
+
+    def temporal_averaging(self):
         # Check if there are images for temporal averaging
-        if not self.images_for_temporal_averaging:
-            return
-
+        nb_images = self.canaux[1].shape[0]
+        for i in range(nb_images-self.window_size+1):
+            self.normalized_image_array_green[i] = np.mean(self.normalized_image_array_green[i:i+self.window_size,:,:], axis = 0)
+            self.normalized_image_array_red[i] = np.mean(self.normalized_image_array_red[i:i+self.window_size,:,:], axis = 0)
+        print('Temporal_avg')
+        self.canaux = {0: np.copy(self.normalized_image_array_green),
+                        1: np.copy(self.normalized_image_array_red)}
         # Perform temporal averaging
-        averaged_image = np.mean(self.images_for_temporal_averaging, axis=0)
+        # averaged_image = np.mean(self.images_for_temporal_averaging, axis=0)
 
-        # Update the displayed image using Matplotlib
-        self.axis.imshow(averaged_image, cmap='gray')
-        self.canvas.draw_idle()
+        # # Update the displayed image using Matplotlib
+        # self.axis.imshow(averaged_image, cmap='gray')
+        # self.canvas.draw_idle()
             
     def update_threshold(self, *args):
         # Get threshold values from the sliders
-        self.threshold_min = round(self.threshold_min_slider.get(), 2)  # Round to two decimal places
-        self.threshold_max = round(self.threshold_max_slider.get(), 2)  # Round to two decimal places
+        self.threshold_min = round(self.threshold_min_slider.get())  
+        self.threshold_max = round(self.threshold_max_slider.get())  
         
         # Update the threshold labels with the current values
         #self.threshold_min_value_label.config(text=f"Threshold Min: {threshold_min}")
@@ -374,11 +496,11 @@ class ImageViewer(ttk.Frame):
 
         if self.threshold_min >= self.threshold_max:
             # Adjust the values to ensure threshold_min is always less than threshold_max
-            self.threshold_max = max(self.threshold_max, self.threshold_min + 0.01)  # Adjust threshold_max to be slightly higher than threshold_min
+            self.threshold_max = max(self.threshold_max, self.threshold_min + 1)  # Adjust threshold_max to be slightly higher than threshold_min
             self.threshold_max_slider.set(self.threshold_max)  # Update the slider value
         if self.threshold_max <= self.threshold_min:
             # Adjust the values to ensure threshold_max is always greater than threshold_min
-            self.threshold_min = min(self.threshold_min, self.threshold_max - 0.01)  # Adjust threshold_min to be slightly lower than threshold_max
+            self.threshold_min = min(self.threshold_min, self.threshold_max - 1)  # Adjust threshold_min to be slightly lower than threshold_max
             self.threshold_min_slider.set(self.threshold_min)  # Update the slider value
         self.threshold()
         self.update_displayed_image()  
@@ -399,11 +521,13 @@ class ImageViewer(ttk.Frame):
         #thresholded_image[thresholded_image < self.threshold_min] = 0  # Set values below the min threshold to 0
         #thresholded_image[thresholded_image > self.threshold_max] = 1  # Set values above the max threshold to 0
         if self.selected_channel == 1:
+            self.canaux[0][self.current_index]= np.copy(self.normalized_image_array_green[self.current_index])
             self.canaux[0][self.current_index][self.normalized_image_array_green[self.current_index]<self.threshold_min] = 0
-            self.canaux[0][self.current_index][self.normalized_image_array_green[self.current_index]>self.threshold_max] = 1
+            self.canaux[0][self.current_index][self.normalized_image_array_green[self.current_index]>self.threshold_max] = 255
         elif self.selected_channel == 2:
+            self.canaux[1][self.current_index]= np.copy(self.normalized_image_array_red[self.current_index])
             self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]<self.threshold_min] = 0
-            self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]>self.threshold_max] = 1
+            self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]>self.threshold_max] = 255
         #return thresholded_image[1]
     
     def update_parameters_label(self, brightness=None, contrast=None, threshold_min=None, threshold_max=None):
@@ -437,11 +561,19 @@ class ImageViewer(ttk.Frame):
         #self.canvas.draw_idle()
         #Get the original image shape
         
-        if self.selected_channel == 1:
+        if self.is_green_button:
             self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
-            
-        if self.selected_channel == 2:
+        if self.is_red_button:
             self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
+ 
+        if(self.is_green_button and self.is_red_button):
+            self.axis.imshow(np.dstack((self.canaux[1][self.current_index], self.canaux[0][self.current_index], np.zeros_like(self.canaux[0][self.current_index]))))
+        # #     fig, self.axis = plt.subplots()
+        # #     red_img = np.dstack((self.canaux[0][self.current_index], np.zeros_like(self.canaux[0][self.current_index]), np.zeros_like(self.canaux[0][self.current_index])))
+        # #     green_img = np.dstack((np.zeros_like(self.canaux[1][self.current_index]), self.canaux[1][self.current_index], np.zeros_like(self.canaux[0][self.current_index])))
+
+        #     self.axis.imshow(red_img,alpha=1)
+        #     self.axis.imshow(green_img,alpha=0.57)
         self.canvas.draw_idle()
         """ ---------------------------------------------------------------------------
         # Reshape the image to its original shape
@@ -471,10 +603,20 @@ class ImageViewer(ttk.Frame):
         
     def select_green_channel(self):
         self.selected_channel = 1
+        if self.green_button.config('relief')[-1] == 'sunken':
+            self.green_button.config(relief=RAISED)
+        else:
+            self.green_button.config(relief=SUNKEN)
+        self.is_green_button = not self.is_green_button
         self.update_image()
 
     def select_red_channel(self):
         self.selected_channel = 2
+        if self.red_button.config('relief')[-1] == 'sunken':
+            self.red_button.config(relief=RAISED)
+        else:
+            self.red_button.config(relief=SUNKEN)
+        self.is_red_button = not self.is_red_button
         self.update_image()
 
     def change_color(self):
@@ -485,32 +627,72 @@ class ImageViewer(ttk.Frame):
         self.color_mode = 'gray_r' if self.is_color_changed else 'gray'
         self.update_displayed_image()
         self.color_change_button.config(text="Change Color" if not self.is_color_changed else "Revert Color")
-        
+
+## START ZOOM        
     def zoom_in(self):
+        ''' OLD METHOD
         # Zoom in the image
         self.current_zoom_level *= self.zoom_factor
         self.update_displayed_image()
+        '''
+        xlim = self.axis.get_xlim()  # Get current x-axis limits
+        ylim = self.axis.get_ylim()  # Get current y-axis limits
+        zoom_factor = 1.1  # Zoom factor
+        new_xlim = (xlim[0] / zoom_factor, xlim[1] / zoom_factor)  # New x-axis limits
+        new_ylim = (ylim[0] / zoom_factor, ylim[1] / zoom_factor)  # New y-axis limits
+        self.axis.set_xlim(new_xlim)  # Set new x-axis limits
+        self.axis.set_ylim(new_ylim)  # Set new y-axis limits
+        self.canvas.draw_idle()  # Redraw canvas
+        
 
     def zoom_out(self):
+        '''OLD METHOD
         # Zoom out the image
         self.current_zoom_level /= self.zoom_factor
         self.update_displayed_image()
-    
+        '''
+        xlim = self.axis.get_xlim()  # Get current x-axis limits
+        ylim = self.axis.get_ylim()  # Get current y-axis limits
+        zoom_factor = 1.1  # Zoom factor
+        new_xlim = (xlim[0] * zoom_factor, xlim[1] * zoom_factor)  # New x-axis limits
+        new_ylim = (ylim[0] * zoom_factor, ylim[1] * zoom_factor)  # New y-axis limits
+        self.axis.set_xlim(new_xlim)  # Set new x-axis limits
+        self.axis.set_ylim(new_ylim)  # Set new y-axis limits
+        self.canvas.draw_idle()  # Redraw canvas
+        
+    def reset_zoom(self):
+        self.current_zoom_level = 1.0
+        self.axis.set_xlim(0, 1)
+        self.axis.set_ylim(0, 1)
+        self.canvas.draw_idle()
+        
     def toggle_zoom_mode(self):
         # Toggle the zoom mode on/off
-        self.zoom_mode_enabled = not self.zoom_mode_enabled
+        #self.zoom_mode_enabled = not self.zoom_mode_enabled
+        self.zoom_mode = not self.zoom_mode
+        # Reset panning mode when zoom mode is toggled
+        self.panning_mode_enabled = False
             
     # Zoom Selection
     def on_press(self, event):
+        ##### OLD METHOD
+        
         # Check if zoom mode is enabled
-        if not self.zoom_mode_enabled:
-            return
+        #if not self.zoom_mode_enabled:
+        #    return
 
         # Store the starting position for zoom selection
-        self.zoom_start_x = event.xdata
-        self.zoom_start_y = event.ydata
+        #self.zoom_start_x = event.xdata
+        #self.zoom_start_y = event.ydata
+        
+        #####
+        self.previous_x = event.x
+        self.previous_y = event.y
+        
 
     def on_motion(self, event):
+        
+        ''' OLD METHOD
         
         # Check if zoom mode is enabled
         if not self.zoom_mode_enabled:
@@ -522,17 +704,66 @@ class ImageViewer(ttk.Frame):
             current_y = event.ydata
 
             if self.zoom_rect:
-                self.axis.patches.remove(self.zoom_rect)
+                #self.axis.patches.remove(self.zoom_rect)
+                self.zoom_rect.set_width(current_x - self.zoom_start_x)
+                self.zoom_rect.set_height(current_y - self.zoom_start_y)
+                self.zoom_rect.set_xy((self.zoom_start_x, self.zoom_start_y))
 
-            width = current_x - self.zoom_start_x
-            height = current_y - self.zoom_start_y
+            else:            
 
-            self.zoom_rect = plt.Rectangle((self.zoom_start_x, self.zoom_start_y), width, height,
+                width = current_x - self.zoom_start_x
+                height = current_y - self.zoom_start_y
+
+                self.zoom_rect = plt.Rectangle((self.zoom_start_x, self.zoom_start_y), width, height,
                                        linewidth=1, edgecolor='r', facecolor='none')
-            self.axis.add_patch(self.zoom_rect)
-            self.canvas.draw()
+                self.axis.add_patch(self.zoom_rect)
+            
+            #self.canvas.draw()
+            self.canvas.draw_idle()
 
+        '''
+        '''
+        if event.button == "None":
+            return
+
+        if self.previous_x is None or self.previous_y is None:
+            return
+
+        if event.button == 1:
+            dx = event.x - self.previous_x
+            dy = event.y - self.previous_y
+
+            self.axis.set_xlim(self.axis.get_xlim() - dx * 0.01)
+            self.axis.set_ylim(self.axis.get_ylim() - dy * 0.01)
+            self.canvas.draw_idle()
+
+        self.previous_x = event.x
+        self.previous_y = event.y
+        '''
+        # Check if zoom mode is enabled and if the user is zooming
+        if self.zoom_mode and self.zooming:
+            # Calculate the difference in x and y coordinates
+            dx = event.x - self.previous_x
+            dy = event.y - self.previous_y
+        
+            # Update the x-axis and y-axis limits accordingly
+            xlim = self.axis.get_xlim()
+            ylim = self.axis.get_ylim()
+            self.axis.set_xlim(xlim[0] - dx * 0.01, xlim[1] - dx * 0.01)
+            self.axis.set_ylim(ylim[0] - dy * 0.01, ylim[1] - dy * 0.01)
+        
+            # Redraw the canvas
+            self.canvas.draw_idle()
+    
+        # Update the previous x and y coordinates
+        self.previous_x = event.x
+        self.previous_y = event.y
+        
+    
+    
     def on_release(self, event):
+        ''' OLD METHOD
+        
         # Check if zoom mode is enabled
         if not self.zoom_mode_enabled:
             return
@@ -558,7 +789,81 @@ class ImageViewer(ttk.Frame):
             self.zoom_start_x = None
             self.zoom_start_y = None
             self.zoom_rect = None
+        '''
+        self.previous_x = None
+        self.previous_y = None
+        
             
+            
+    def on_scroll(self, event):
+        # Check if zoom mode is enabled
+        if not self.zoom_mode:
+            return
+        # Get the current zoom level
+        zoom_factor = 1.1 if event.button == 'up' else 1 / 1.1
+        self.current_zoom_level *= zoom_factor
+        '''
+        xlim = self.axis.get_xlim()
+        ylim = self.axis.get_ylim()
+        self.axis.set_xlim(xlim[0] * zoom_factor, xlim[1] * zoom_factor)
+        self.axis.set_ylim(ylim[0] * zoom_factor, ylim[1] * zoom_factor)
+        '''
+        xlim = self.axis.get_xlim()
+        ylim = self.axis.get_ylim()
+        center_x = (xlim[0] + xlim[1]) / 2
+        center_y = (ylim[0] + ylim[1]) / 2
+        new_width = (xlim[1] - xlim[0]) * zoom_factor
+        new_height = (ylim[1] - ylim[0]) * zoom_factor
+        self.axis.set_xlim(center_x - new_width / 2, center_x + new_width / 2)
+        self.axis.set_ylim(center_y - new_height / 2, center_y + new_height / 2)
+       
+        
+        self.canvas.draw_idle()
+        #self.update_displayed_image()
+
+    def on_pan_press(self, event):
+        # Check if panning mode is enabled
+        if not self.panning_mode_enabled:
+            return
+        self.panning_start_x = event.xdata
+        self.panning_start_y = event.ydata
+
+    def on_pan_motion(self, event):
+        # Check if panning mode is enabled and a starting point is set
+        if not self.panning_mode_enabled or self.panning_start_x is None or self.panning_start_y is None:
+            return
+        current_x = event.xdata
+        current_y = event.ydata
+        if current_x is not None and current_y is not None:
+            delta_x = current_x - self.panning_start_x
+            delta_y = current_y - self.panning_start_y
+            self.axis.set_xlim(self.axis.get_xlim() - delta_x)
+            self.axis.set_ylim(self.axis.get_ylim() - delta_y)
+            self.canvas.draw_idle()
+
+    def on_pan_release(self, event):
+        # Reset panning variables
+        self.panning_start_x = None
+        self.panning_start_y = None
+        
+    def on_zoom_start(self, event):
+        # Check if zoom mode is enabled
+        if self.zoom_mode_enabled:
+            # Set zooming flag to True
+            self.zooming = True
+            # Change cursor to a hand
+            self.canvas.config(cursor='hand')
+
+    def on_zoom_end(self, event):
+        # Check if zoom mode was active
+        if self.zooming:
+            # Reset zooming flag
+            self.zooming = False
+            # Restore cursor to default
+            self.canvas.config(cursor='')    
+## END ZOOM        
+        
+        
     # SEGMENTATION
     def toggle_segmentation_mode(self):
         # Toggle the segmentation mode on/off
@@ -600,7 +905,9 @@ class ImageViewer(ttk.Frame):
 
     def reset_context_for_segments_csv(self):
         self.id_color = -1
+
         #self.clear_segments()
+
 
     def draw_segments_from_csv(self, coordinates):
         if (len(coordinates) < 3):

@@ -25,13 +25,15 @@ The reference to the .tiff file in your project will be guarded from your first 
 
 The reference to the .tiff file in your project will be guarded from your first selection. If the location is changed, please edit the identification.txt file inside the project folder.
 
-## User guide for the GUI
+### User guide for the GUI
 
-### Once the software is open, you'll find a few different sections:
-### 1 - Toolbar: located at the top, it contains the traditional software menus.
-### 2 - File explorer: located on the left, it contains the file tree of the software folder created on the user's computer and allows you to browse through the files.
-### 3 - Image display: located in the center of the screen, it contains the display of the selected .tiff file, allowing the user to edit brightness, contrast, temporal mediation, select the frame using the image slider, use the mouse function as a hand to move the image and zoom-in and zoom-out, as well as the segmentation function which will be dealt with separately.
-### 4 - Data display: located on the top right-hand side of the screen, this is where you can browse the segmentation data, going through the pages covering all the frames of the loaded image, with the possibility of importing/exporting data from .csv files for analysis in the software.
-### 5 - Graph display: located on the lower right-hand side of the screen, this is where the graphs plotted with the data obtained from the user's segmentation are displayed. Using the same selection tool as for the Data display, you can select to display the graph and data for the ROI you want to analyze at any given time, as well as the graph comparison mechanism, where you can plot multiple ROIs simultaneously..
+#### Once the software is open, you'll find a few different sections:
+
+- **Toolbar**: Located at the top, it contains the traditional software menus.
+- **File explorer**: Located on the left, it contains the file tree of the software folder created on the user's computer and allows you to browse through the files.
+- **Image display**: Located in the center of the screen, it contains the display of the selected .tiff file, allowing the user to edit brightness, contrast, temporal mediation, select the frame using the image slider, use the mouse function as a hand to move the image and zoom-in and zoom-out, as well as the segmentation function which will be dealt with separately.
+- **Data display**: Located on the top right-hand side of the screen, this is where you can browse the segmentation data, going through the pages covering all the frames of the loaded image, with the possibility of importing/exporting data from .csv files for analysis in the software.
+- **Graph display**: Located on the lower right-hand side of the screen, this is where the graphs plotted with the data obtained from the user's segmentation are displayed. Using the same selection tool as for the Data display, you can select to display the graph and data for the ROI you want to analyze at any given time, as well as the graph comparison mechanism, where you can plot multiple ROIs simultaneously.
+
 
 

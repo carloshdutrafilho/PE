@@ -1,7 +1,7 @@
 # MedicAnalysis v1.0
 # École des Mines de Saint-Étienne
 
-Produced by: Aya EL JANOUSSI, Carlos Henrique DUTRA FILHO, Marc Gleyze and Tom Bourbon
+Produced by: Aya El Janoussi, Carlos Henrique Dutra Filho, Marc Gleyze and Tom Bourbon
 2024
 
 ---

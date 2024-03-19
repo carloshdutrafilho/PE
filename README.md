@@ -15,15 +15,15 @@ MedicAnalysis is an medical imaging analysis tool developed to assist researcher
 1. Click on the **Load Image** button to load an image.
 2. Select the desired TIFF image file (.tiff or .tif) from your computer.
 
-This process will create a project folder with the inserted name in your computer (C:\MedicAnalysis\Projects\-yourprojectname-).
-The reference to the .tiff file in your project will be guarded from your first selection. If the location is changed, please edit the identification.txt file inside the project folder.
+- This process will create a project folder with the inserted name in your computer (C:\MedicAnalysis\Projects\-yourprojectname-).
+- The reference to the .tiff file in your project will be guarded from your first selection. If the location is changed, please edit the identification.txt file inside the project folder.
 
 ### Loading a project
 
 1. Click on the **Load project** button to load a project.
 2. Select the desired folder from your computer.
 
-The reference to the .tiff file in your project will be guarded from your first selection. If the location is changed, please edit the identification.txt file inside the project folder.
+- The reference to the .tiff file in your project will be guarded from your first selection. If the location is changed, please edit the identification.txt file inside the project folder.
 
 ### User guide for the GUI
 

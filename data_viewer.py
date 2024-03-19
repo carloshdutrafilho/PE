@@ -1,8 +1,9 @@
 #data_viewer.py
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, StringVar
+from tkinter import ttk, filedialog, messagebox, StringVar, Toplevel
 import csv
 import os
+import matplotlib.pyplot as plt 
 
 class DataViewer(ttk.Frame):
     def __init__(self, master, GUI=None):
@@ -13,6 +14,9 @@ class DataViewer(ttk.Frame):
         self.ROI_data = {}
         self.selected_ROI_index = 0
         self.listes_graphs = []
+        self.page_size = 50 
+        self.current_page = {}
+        self.total_pages = {} 
 
         tree_frame = ttk.Frame(self)
         tree_frame.pack(side=tk.TOP, padx=10, pady=10)
@@ -52,10 +56,20 @@ class DataViewer(ttk.Frame):
 
         self.save_button = ttk.Button(csv_buttons_frame, text="Save as CSV", command=self.save_as_csv)
         self.save_button.pack(side=tk.LEFT, padx=10)
-
-        self.page_size = 50 
-        self.current_page = {}
-        self.total_pages = {} 
+    
+    def disable_functionalities_pre_load(self):
+        self.prev_button.config(state='disabled')
+        self.next_button.config(state='disabled')
+        self.load_button.config(state='disabled')
+        self.save_button.config(state='disabled')
+        self.ROI_combobox.config(state='disabled')
+    
+    def enable_functionalities_post_load(self):
+        self.prev_button.config(state='normal')
+        self.next_button.config(state='normal')
+        self.load_button.config(state='normal')
+        self.save_button.config(state='normal')
+        self.ROI_combobox.config(state='readonly')
 
     def process_segment_data(self, segment_data):
         segment_x_array = segment_data['segment_x_array']

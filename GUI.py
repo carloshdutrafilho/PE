@@ -40,21 +40,24 @@ class GUI(tk.Toplevel):
         self.image_viewer = ImageViewer(main_container)
         #self.image_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         main_container.add(self.image_viewer, minsize=200)  # Set minimum size
+        self.image_viewer.disable_functionalities_pre_load()
 
         # Data and Graph Viewers
         data_graph_frame = tk.PanedWindow(main_container, orient=tk.VERTICAL, sashwidth=8, sashrelief=tk.SUNKEN)
-        main_container.add(data_graph_frame, minsize=175)  # Set minimum size
+        main_container.add(data_graph_frame, minsize=200)  # Set minimum size
 
         # Data Viewer
         self.data_viewer = DataViewer(data_graph_frame, self)
         self.image_viewer.set_data_viewer(self.data_viewer)
-        data_graph_frame.add(self.data_viewer, minsize=150)  # Set minimum size
+        data_graph_frame.add(self.data_viewer, minsize=200)  # Set minimum size
+        self.data_viewer.disable_functionalities_pre_load()
 
         # Graph Viewer
         self.graph_viewer = GraphViewer(data_graph_frame)
+        self.graph_viewer.disable_functionalities_pre_load()
         self.image_viewer.set_graph_viewer(self.graph_viewer)
         self.data_viewer.set_graph_viewer(self.graph_viewer)
-        data_graph_frame.add(self.graph_viewer, minsize=150)  # Set minimum size
+        data_graph_frame.add(self.graph_viewer, minsize=200)  # Set minimum size
         
         self.load_screen = LoadScreen(self.master, app=self, image_viewer=self.image_viewer)
         
@@ -108,6 +111,15 @@ class GUI(tk.Toplevel):
         
         # List to store recently used files
         self.recent_files = [] 
+        self.protocol("WM_DELETE_WINDOW", self.quit_software)
+
+    def quit_software(self):
+        self.quit()
+    
+    def enable_functionalities_post_load(self):
+        self.image_viewer.enable_functionalities_post_load()
+        self.data_viewer.enable_functionalities_post_load()
+        self.graph_viewer.enable_functionalities_post_load()
 
     def get_project_path(self):
         return self.load_screen.get_project_path()
@@ -120,6 +132,9 @@ class GUI(tk.Toplevel):
 
     def reset_context_for_segments_csv(self):
         self.image_viewer.reset_context_for_segments_csv()
+    
+    # def charge_data_from_csv(self):
+    #     self.data_viewer
 
     def bind_shortcuts(self):
         self.bind("<Control-U>", lambda event: self.open_file())

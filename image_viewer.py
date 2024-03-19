@@ -22,8 +22,7 @@ class ImageViewer(ttk.Frame):
         self.current_index = 0 #Index for Slider
         self.normalized_image_array_red = np.zeros((1,1,1))
         self.normalized_image_array_green = np.zeros((1,1,1))
-
-        
+        self.sequence = imageio.volread(r'C:\Users\carlo\Downloads\transfer_6891262_files_d43c2e32\220728-S2_04_500mV.ome.tiff')
 
         self.data_viewer = None
         self.graph_viewer=None
@@ -230,7 +229,34 @@ class ImageViewer(ttk.Frame):
         
         self.reset_image()
         self.canaux = {}
-        self.sequence=imageio.volread(r'C:\Users\carlo\Downloads\transfer_6891262_files_d43c2e32\220728-S2_04_500mV.ome.tiff')
+    
+    def disable_functionalities_pre_load(self):
+        self.red_button.config(state="disabled")
+        self.green_button.config(state="disabled")
+        self.color_change_button.config(state="disabled")
+        self.zoom_in_button.config(state="disabled")
+        self.zoom_out_button.config(state="disabled")
+        self.segmentation_button.config(state="disabled")
+        self.contrast_slider.config(state="disabled")
+        self.brightness_slider.config(state="disabled")
+        self.threshold_min_slider.config(state="disabled")
+        self.threshold_max_slider.config(state="disabled")
+        #self.image_slider.config(state="disabled")
+        self.moyennage_entry.config(state="disabled")
+    
+    def enable_functionalities_post_load(self):
+        self.red_button.config(state="normal")
+        self.green_button.config(state="normal")
+        self.color_change_button.config(state="normal")
+        self.zoom_in_button.config(state="normal")
+        self.zoom_out_button.config(state="normal")
+        self.segmentation_button.config(state="normal")
+        self.contrast_slider.config(state="normal")
+        self.brightness_slider.config(state="normal")
+        self.threshold_min_slider.config(state="normal")
+        self.threshold_max_slider.config(state="normal")
+        #self.image_slider.config(state="normal")
+        self.moyennage_entry.config(state="normal")
 
     def set_data_viewer(self, data_viewer):
         self.data_viewer = data_viewer
@@ -343,8 +369,6 @@ class ImageViewer(ttk.Frame):
         self.update_displayed_image()
         
         # Initialize images_for_temporal_averaging list with the first image
-        
-
 
     def update_time_slider(self, max_time):
         self.time_slider.configure(to=max_time)

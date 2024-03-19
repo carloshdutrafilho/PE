@@ -7,8 +7,6 @@ class Application:
         self.master = master
         self.gui = GUI()
 
-        self.selected_file = None
-
 if __name__ == "__main__":
     root = Tk()
     app = Application(master=root)

@@ -22,6 +22,11 @@ class ImageViewer(ttk.Frame):
         self.current_index = 0 #Index for Slider
         self.normalized_image_array_red = np.zeros((1,1,1))
         self.normalized_image_array_green = np.zeros((1,1,1))
+        self.is_image_black = True
+        self.saturation_pixels_min = 0.1
+        self.saturation_pixels_max = 99.8
+        self.contrast_value = 0
+        self.brightness_value = 0        
         self.sequence = imageio.volread(r'C:\Users\carlo\Downloads\transfer_6891262_files_d43c2e32\220728-S2_04_500mV.ome.tiff')
 
         self.data_viewer = None
@@ -67,7 +72,7 @@ class ImageViewer(ttk.Frame):
         self.parameters_label = tk.Label(self.image_container, text="Contrast: 0\nBrightness: 0\nThreshold Min: 0\nThreshold Max: 0  ", bd=1, relief=tk.SOLID, width=20, height=4)
         self.parameters_label.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
 
-        self.selected_channel = 2
+        self.selected_channel = 1
         # Red channel button
         self.color_mode = 'gray'
         self.red_button = tk.Button(self.image_container, text="Red Channel", command=self.select_red_channel)
@@ -181,43 +186,42 @@ class ImageViewer(ttk.Frame):
         
         # Create a container for parameters and sliders
         self.parameters_container = ttk.Frame(self)
-        self.parameters_container.pack(side=tk.BOTTOM, pady=10)
-        
-        # Add entry widgets for parameters
-        self.moyennage_label = ttk.Label(self.parameters_container, text="Temp. averaging=")
-        self.moyennage_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.moyennage_entry = ttk.Entry(self.parameters_container, width=10)
-        self.moyennage_entry.pack(side=tk.LEFT, padx=10, pady=10)
-        self.moyennage_entry.bind("<Return>", self.update_window_size)
+        self.parameters_container.pack(side=tk.TOP, pady=4)
+
+        # Brightness adjustment
+        self.brightness_label = ttk.Label(self.parameters_container, text="Brightness=")
+        self.brightness_label.grid(row=0, column=0, padx=5, pady=5)
+        self.brightness_slider = ttk.Scale(self.parameters_container, from_=-100, to=100, orient=tk.HORIZONTAL, command=self.update_brightness)
+        self.brightness_slider.grid(row=0, column=1, padx=10, pady=5)
 
         # Contrast adjustment
-        self.contrast_value = 0
         self.contrast_label = ttk.Label(self.parameters_container, text="Contrast=")
-        self.contrast_label.pack(side=tk.LEFT, padx=5, pady=10)
+        self.contrast_label.grid(row=0, column=2, padx=5, pady=5)
         self.contrast_slider = ttk.Scale(self.parameters_container, from_=0, to=100, orient=tk.HORIZONTAL, command=self.update_contrast)
-        self.contrast_slider.pack(side=tk.LEFT, padx=10, pady=10)
-        
-        # Brightness adjustment
-        self.brightness_value = 0
-        self.brightness_label = ttk.Label(self.parameters_container, text="Brightness=")
-        self.brightness_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.brightness_slider = ttk.Scale(self.parameters_container, from_=-100, to=100, orient=tk.HORIZONTAL, command=self.update_brightness)
-        self.brightness_slider.pack(side=tk.LEFT, padx=10, pady=10)
+        self.contrast_slider.grid(row=0, column=3, padx=10, pady=5)
+
+        # Temporal averaging entry
+        self.moyennage_label = ttk.Label(self.parameters_container, text="Temp. averaging=")
+        self.moyennage_label.grid(row=0, column=4, padx=5, pady=5)
+        self.moyennage_entry = ttk.Entry(self.parameters_container, width=10)
+        self.moyennage_entry.grid(row=0, column=5, padx=10, pady=5)
+        self.moyennage_entry.bind("<Return>", self.update_window_size)
 
         # Threshold adjustment
-        self.threshold_min = 0
-        self.threshold_max = 255
         self.threshold_min_label = ttk.Label(self.parameters_container, text="Min Threshold=")
-        self.threshold_min_label.pack(side=tk.LEFT, padx=5, pady=10)
+        self.threshold_min_label.grid(row=1, column=0, padx=5, pady=5)
         self.threshold_min_slider = ttk.Scale(self.parameters_container, from_=0, to=254, orient=tk.HORIZONTAL, command=self.update_threshold)
-        self.threshold_min_slider.pack(side=tk.LEFT, padx=10, pady=10)
+        self.threshold_min_slider.grid(row=1, column=1,padx=10,pady=5)
 
-        self.threshold_max_label = ttk.Label(self.parameters_container, text="Max Threshold=")
-        self.threshold_max_label.pack(side=tk.LEFT, padx=5, pady=10)
-        self.threshold_max_slider = ttk.Scale(self.parameters_container, from_=1, to=255, orient=tk.HORIZONTAL, command=self.update_threshold)
-        self.threshold_max_slider.pack(side=tk.LEFT, padx=10, pady=10)
+        self.threshold_max_label = ttk.Label(self.parameters_container,text="Max Threshold=")
+        self.threshold_max_label.grid(row=1,column=2,padx=5,pady=5)
+        self.threshold_max_slider = ttk.Scale(self.parameters_container ,from_=1,to =255 ,orient=tk.HORIZONTAL ,command=self.update_threshold )
+        self.threshold_max_slider.grid(row = 1,column = 3,padx = 10,pady = 5 )
         self.threshold_max_slider.set(255)
-        
+
+        # Save button
+        self.save_button = tk.Button(self.parameters_container,text="Sauvegarder les paramètres",command=self.save_parameters )
+        self.save_button.grid(row = 1,column = 4,pady = 5 )
         # Temporal averaging variables
         self.window_size = 1  # Initial window size
         self.images_for_temporal_averaging = []  # List to store images for averaging
@@ -266,6 +270,19 @@ class ImageViewer(ttk.Frame):
 
     def set_graph_viewer(self, graph_viewer):
         self.graph_viewer = graph_viewer
+    def save_parameters(self):
+        
+        self.save_button.config(relief=SUNKEN)
+        if self.selected_channel == 0:
+            self.canaux[0] = np.clip(self.normalized_image_array_green * (1.0 + self.contrast_value)+ self.brightness_value, 0, 255).astype(np.uint8)
+            self.canaux[0][self.normalized_image_array_green<self.threshold_min] = 0
+            self.canaux[0][self.normalized_image_array_green>self.threshold_max] = 255
+        elif self.selected_channel == 1:
+            self.canaux[1] = np.clip(self.normalized_image_array_red * (1.0 + self.contrast_value)+ self.brightness_value, 0, 255).astype(np.uint8)
+            self.canaux[1][self.normalized_image_array_red<self.threshold_min] = 0
+            self.canaux[1][self.normalized_image_array_red>self.threshold_max] = 255
+        self.save_button.config(relief=RAISED)
+            
 
     def load_image(self, image_path):
         # Load and display image using Matplotlib
@@ -275,11 +292,13 @@ class ImageViewer(ttk.Frame):
         image_width, image_height = self.original_image[0,0].shape
         #image_width, image_height = self.original_image.size
         
-        
-
         red_images = np.copy(self.original_image[1])
         green_images = np.copy(self.original_image[0])
-        del self.original_image
+        
+        
+
+        
+        # del self.original_image
        # Placeholder image
         self.placeholder_image = Image.new("RGB", (image_width, image_height), "lightgray")
         self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
@@ -318,6 +337,7 @@ class ImageViewer(ttk.Frame):
         if np.mean(green_images[0])>2**15: #Si le fond de l'image est blanc, le convertir en noir
             self.normalized_image_array_green = 255- self.normalized_image_array_green
             self.normalized_image_array_red = 255- self.normalized_image_array_red
+            self.is_image_black = False
         del green_images
         self.canaux = {0: np.copy(self.normalized_image_array_green),
                         1: np.copy(self.normalized_image_array_red)}
@@ -342,11 +362,11 @@ class ImageViewer(ttk.Frame):
         
         # self.axis.imshow(displayed_image, cmap='gray')  # Display the reshaped 2D image
         # self.canvas.draw_idle()
-        if self.selected_channel == 1:
-            self.image_display = self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
-        if self.selected_channel == 2:
-            self.image_display = self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
-
+        # if self.selected_channel == 0:
+        #     self.image_display = self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
+        # if self.selected_channel == 1:
+        #     self.image_display = self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
+        self.image_display = self.axis.imshow(self.canaux[self.selected_channel][self.current_index], cmap=self.color_mode)
         #self.axis.imshow(self.normalized_image_array, cmap='gray')  # Display the reshaped 2D image
         #self.canvas.draw_idle()
         
@@ -360,10 +380,11 @@ class ImageViewer(ttk.Frame):
 
     def update_image(self,value = None):
         self.current_index = int(self.slider.val)
-        if self.selected_channel == 1:
-            self.image_display.set_data(self.canaux[0][self.current_index])
-        if self.selected_channel == 2: 
-            self.image_display.set_data(self.canaux[1][self.current_index])
+        # if self.selected_channel == 0:
+        #     self.image_display.set_data(self.canaux[0][self.current_index])
+        # if self.selected_channel == 1: 
+        #     self.image_display.set_data(self.canaux[1][self.current_index])
+        self.image_display.set_data(self.canaux[self.selected_channel][self.current_index])
         
         
         self.update_displayed_image()
@@ -391,20 +412,29 @@ class ImageViewer(ttk.Frame):
         
         # Apply contrast adjustment
         ##############################contrasted_image = self.contrast(self.image, contrast)
-        self.contrast()
+        # self.contrast()
+        self.contrast_and_brightness()
         self.update_displayed_image()
 
         # Update the displayed image using Matplotlib------------------------
         # self.axis.imshow(contrasted_image, cmap='gray')
         # self.canvas.draw_idle()
 
-    def contrast(self):
+    def contrast_and_brightness(self):
         # Calculate the contrasted image by multiplying by the contrast value
-        if self.selected_channel == 1:
-            self.canaux[0][self.current_index] = np.clip(self.normalized_image_array_green[self.current_index] * (1.0 + self.contrast_value), 0, 255)  # Normalize to [0, 1]
-        elif self.selected_channel == 2:
-            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] * (1.0 + self.contrast_value), 0, 255)  # Normalize to [0, 1]
-
+        if self.selected_channel == 0:
+            self.canaux[0][self.current_index] = np.clip(self.normalized_image_array_green[self.current_index] * (1.0 + self.contrast_value)+ self.brightness_value, 0, 255).astype(np.uint8)  # Normalize to [0, 1]
+            self.canaux[0][self.current_index][self.normalized_image_array_green[self.current_index]<self.threshold_min] = 0
+            self.canaux[0][self.current_index][self.normalized_image_array_green[self.current_index]>self.threshold_max] = 255
+        elif self.selected_channel == 1:
+            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] * (1.0 + self.contrast_value)+ self.brightness_value, 0, 255).astype(np.uint8)  # Normalize to [0, 1]
+            self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]<self.threshold_min] = 0
+            self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]>self.threshold_max] = 255
+        
+            
+            
+        #return thresholded_image[1]
+ 
     
     def update_brightness(self, *args):
         # Get brightness value from the slider
@@ -418,7 +448,8 @@ class ImageViewer(ttk.Frame):
         
         # Apply brightness adjustment
         # brightened_image = self.brightness(self.image, brightness)
-        self.brightness()
+        # self.brightness()
+        self.contrast_and_brightness()
         self.update_displayed_image()
         # Update the displayed image using Matplotlib
         # self.axis.imshow(brightened_image, cmap='gray')
@@ -428,10 +459,10 @@ class ImageViewer(ttk.Frame):
     
         # Calculate the image with adjusted brightness by adding the brightness value
         #image_brightened = np.clip(image + brightness_value / 255, 0, 1)  # Normalize to [0, 1]
-        if self.selected_channel == 1:
-            self.canaux[0][self.current_index] =  np.clip(self.normalized_image_array_green[self.current_index] + self.brightness_value, 0, 255)  # Normalize to [0, 1]
-        elif self.selected_channel == 2:
-            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] + self.brightness_value, 0, 255)  # Normalize to [0, 1]
+        if self.selected_channel == 0:
+            self.canaux[0][self.current_index] =  np.clip(self.normalized_image_array_green[self.current_index] + self.brightness_value, 0, 255).astype(np.uint8)  # Normalize to [0, 1]
+        elif self.selected_channel == 1:
+            self.canaux[1][self.current_index] = np.clip(self.normalized_image_array_red[self.current_index] + self.brightness_value, 0, 255).astype(np.uint8)  # Normalize to [0, 1]
         # # Print debug information
         # print("Original Image Array:")
         # print(self.normalized_image_array)
@@ -483,6 +514,7 @@ class ImageViewer(ttk.Frame):
         # Update the window size and reload images for temporal averaging
         self.window_size = window_size
         self.temporal_averaging()
+        self.update_displayed_image()
 
             
     # def load_images_for_temporal_averaging(self):
@@ -526,7 +558,8 @@ class ImageViewer(ttk.Frame):
             # Adjust the values to ensure threshold_max is always greater than threshold_min
             self.threshold_min = min(self.threshold_min, self.threshold_max - 1)  # Adjust threshold_min to be slightly lower than threshold_max
             self.threshold_min_slider.set(self.threshold_min)  # Update the slider value
-        self.threshold()
+        # self.threshold()
+        self.contrast_and_brightness()
         self.update_displayed_image()  
         # Update the parameters label with the current values
         self.update_parameters_label(threshold_min=self.threshold_min, threshold_max=self.threshold_max)
@@ -544,11 +577,11 @@ class ImageViewer(ttk.Frame):
         #thresholded_image = np.copy(self.canaux[1])
         #thresholded_image[thresholded_image < self.threshold_min] = 0  # Set values below the min threshold to 0
         #thresholded_image[thresholded_image > self.threshold_max] = 1  # Set values above the max threshold to 0
-        if self.selected_channel == 1:
+        if self.selected_channel == 0:
             self.canaux[0][self.current_index]= np.copy(self.normalized_image_array_green[self.current_index])
             self.canaux[0][self.current_index][self.normalized_image_array_green[self.current_index]<self.threshold_min] = 0
             self.canaux[0][self.current_index][self.normalized_image_array_green[self.current_index]>self.threshold_max] = 255
-        elif self.selected_channel == 2:
+        elif self.selected_channel == 1:
             self.canaux[1][self.current_index]= np.copy(self.normalized_image_array_red[self.current_index])
             self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]<self.threshold_min] = 0
             self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]>self.threshold_max] = 255
@@ -626,7 +659,7 @@ class ImageViewer(ttk.Frame):
             return image
         
     def select_green_channel(self):
-        self.selected_channel = 1
+        self.selected_channel = 0
         if self.green_button.config('relief')[-1] == 'sunken':
             self.green_button.config(relief=RAISED)
         else:
@@ -635,7 +668,7 @@ class ImageViewer(ttk.Frame):
         self.update_image()
 
     def select_red_channel(self):
-        self.selected_channel = 2
+        self.selected_channel = 1
         if self.red_button.config('relief')[-1] == 'sunken':
             self.red_button.config(relief=RAISED)
         else:

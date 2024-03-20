@@ -13,15 +13,19 @@ from tkinter import PhotoImage
 import tifffile 
 import imageio
 import csv
+from tkinter import messagebox
+import matplotlib.text as text
+from pprint import pprint
 
 
 class ImageViewer(ttk.Frame):
-    def __init__(self, master):
+    def __init__(self, master,GUI=None):
         super().__init__(master)
         self.canaux = {0:np.zeros((1,1,1)), 1:np.zeros((1,1,1))}
         self.current_index = 0 #Index for Slider
         self.normalized_image_array_red = np.zeros((1,1,1))
         self.normalized_image_array_green = np.zeros((1,1,1))
+        self.GUI=GUI        
         self.is_image_black = True
         self.saturation_pixels_min = 0.1
         self.saturation_pixels_max = 99.8
@@ -169,6 +173,14 @@ class ImageViewer(ttk.Frame):
         self.marker_styles_point = ['b.', 'g.', 'r.', 'c.', 'm.', 'y.', 'k.', 'w.']
         self.marker_styles_line = ['b-', 'g-', 'r-', 'c-', 'm-', 'y-', 'k-', 'w-']
 
+        #Command Show_tags
+        self.show_tags_var = tk.BooleanVar()
+        self.show_tags_var.set(False)  # Par défaut, ne pas afficher les tags
+
+        self.show_tags_checkbutton = tk.Checkbutton(self.image_container, text="Show Tags", variable=self.show_tags_var, command=self.update_displayed_image)
+        self.show_tags_checkbutton.pack()
+
+        self.tag_artists = []
         # Bind event for segmentation
         self.canvas.mpl_connect('button_press_event', self.on_segment_click)
         
@@ -261,6 +273,7 @@ class ImageViewer(ttk.Frame):
         self.threshold_max_slider.config(state="normal")
         #self.image_slider.config(state="normal")
         self.moyennage_entry.config(state="normal")
+        self.sequence=imageio.volread(r'C:\Users\tombo\Downloads\220728-S2_04_500mV.ome.tiff')
 
     def set_data_viewer(self, data_viewer):
         self.data_viewer = data_viewer
@@ -303,35 +316,35 @@ class ImageViewer(ttk.Frame):
         self.placeholder_image = Image.new("RGB", (image_width, image_height), "lightgray")
         self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
    
-        # Create a container for the image and parameters with the image dimensions
+    #     # Create a container for the image and parameters with the image dimensions
         self.image_container = tk.Frame(self, width=image_width, height=image_height)
-        #self.image_container = ttk.Frame(self)
+    #     #self.image_container = ttk.Frame(self)
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True) 
         
-        # Convert the original image to a NumPy array
-        #self.original_image_array = np.asarray(self.original_image)
-        # print("Original Image Array:", self.original_image_array.shape)
-        # print("Array size: ", len(self.original_image_array))
+    #     # Convert the original image to a NumPy array
+    #     #self.original_image_array = np.asarray(self.original_image)
+    #     # print("Original Image Array:", self.original_image_array.shape)
+    #     # print("Array size: ", len(self.original_image_array))
 
 
-        # Normalize the pixel values to the range [0, 1]
-        #min_value = np.min(self.original_image)
-        #max_value = np.max(self.original_image)
-        # #self.normalized_image_array = (self.original_image - min_value) / (max_value - min_value)
-        # min_value_red = np.min(self.red_images)
-        # max_value_red = np.max(self.red_images)
+    #     # Normalize the pixel values to the range [0, 1]
+    #     #min_value = np.min(self.original_image)
+    #     #max_value = np.max(self.original_image)
+    #     # #self.normalized_image_array = (self.original_image - min_value) / (max_value - min_value)
+    #     # min_value_red = np.min(self.red_images)
+    #     # max_value_red = np.max(self.red_images)
         
         min_value_red = np.percentile(red_images[0],0.1)
         max_value_red = np.percentile(red_images[0],99.8)
-        # self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
+    #     # self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
         self.normalized_image_array_red = (255*np.clip(red_images,min_value_red,max_value_red)/(max_value_red- min_value_red)).astype(np.uint8)
         
         del red_images
-        # min_value_green = np.min(self.green_images)
-        # max_value_green = np.max(self.green_images)
+    #     # min_value_green = np.min(self.green_images)
+    #     # max_value_green = np.max(self.green_images)
         min_value_green = np.percentile(green_images[0],0.1)
         max_value_green = np.percentile(green_images[0],99.8)
-        # self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
+    #     # self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
         self.normalized_image_array_green = (255*np.clip(green_images,min_value_green,max_value_green)/(max_value_green- min_value_green)).astype(np.uint8)
         
         if np.mean(green_images[0])>2**15: #Si le fond de l'image est blanc, le convertir en noir
@@ -371,25 +384,72 @@ class ImageViewer(ttk.Frame):
         #self.canvas.draw_idle()
         
         self.image_display = self.axis.imshow(self.normalized_image_array_red[self.current_index], cmap='gray')
-        #self.image_display = self.axis.imshow(self.original_image)
-        # Add a slider to scroll through images
+        # #self.image_display = self.axis.imshow(self.original_image)
+        # # Add a slider to scroll through images
         ax_slider = self.figure.add_axes([0.2, 0.05, 0.65, 0.03])
         self.slider = Slider(ax_slider, 'Image', 0, self.canaux[1].shape[0]-1, valinit=0)
         print(self.canaux[1].shape[0])
         self.slider.on_changed(self.update_image)
 
-    def update_image(self,value = None):
-        self.current_index = int(self.slider.val)
-        # if self.selected_channel == 0:
-        #     self.image_display.set_data(self.canaux[0][self.current_index])
-        # if self.selected_channel == 1: 
-        #     self.image_display.set_data(self.canaux[1][self.current_index])
-        self.image_display.set_data(self.canaux[self.selected_channel][self.current_index])
+
+    # def load_image(self, image_path):
+    #     # Load and display image using Matplotlib
+    #     self.original_image = Image.open(image_path)
+    #     image_width, image_height = self.original_image.size
+        
+    #    # Placeholder image
+    #     self.placeholder_image = Image.new("RGB", (image_width, image_height), "lightgray")
+    #     self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
+
+    #     # Create a container for the image and parameters with the image dimensions
+    #     self.image_container = tk.Frame(self, width=image_width, height=image_height)
+    #     self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True) 
+
+    #     # Convert the original image to a NumPy array
+    #     self.original_image_array = np.array(self.original_image)
+
+    #     # Normalize the pixel values to the range [0, 1]
+    #     min_value = np.min(self.original_image_array)
+    #     max_value = np.max(self.original_image_array)
+    #     self.normalized_image_array = (self.original_image_array - min_value) / (max_value - min_value)
+
+    #     # Check the shape of the normalized image array
+    #     if len(self.normalized_image_array.shape) == 2:
+    #         # If the array is 2D, keep it as is
+    #         self.image = self.normalized_image_array.copy()
+    #     elif len(self.normalized_image_array.shape) == 3:
+    #         # If the array is 3D (RGB), convert it to grayscale
+    #         self.image = np.mean(self.normalized_image_array, axis=-1).copy()
+        
+    #     # Reshape the 3D array to 2D for display
+    #     displayed_image = self.image.reshape(self.image.shape[0], self.image.shape[1])
+
+    #     # Check if the displayed image has the correct shape
+    #     if displayed_image.shape[0] == 0 or displayed_image.shape[1] == 0:
+    #         # Handle the case where the displayed image has incorrect dimensions
+    #         print("Error: Incorrect dimensions after reshaping.")
+    #         return
+        
+    #     self.axis.imshow(displayed_image, cmap='gray')  # Display the reshaped 2D image
+    #     self.canvas.draw_idle()
+
+    #     self.update_displayed_image()
+        
+    #     # Initialize images_for_temporal_averaging list with the first image
+    #     self.images_for_temporal_averaging = [self.normalized_image_array]
+
+    # def update_image(self,value = None):
+    #     self.current_index = int(self.slider.val)
+    #     # if self.selected_channel == 0:
+    #     #     self.image_display.set_data(self.canaux[0][self.current_index])
+    #     # if self.selected_channel == 1: 
+    #     #     self.image_display.set_data(self.canaux[1][self.current_index])
+    #     self.image_display.set_data(self.canaux[self.selected_channel][self.current_index])
         
         
-        self.update_displayed_image()
+    #     self.update_displayed_image()
         
-        # Initialize images_for_temporal_averaging list with the first image
+    #     # Initialize images_for_temporal_averaging list with the first image
 
     def update_time_slider(self, max_time):
         self.time_slider.configure(to=max_time)
@@ -615,20 +675,35 @@ class ImageViewer(ttk.Frame):
         #self.canvas.draw_idle()
         #Get the original image shape
         
-        if self.is_green_button:
-            self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
-        if self.is_red_button:
-            self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
+        # if self.is_green_button:
+        #     self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
+        # if self.is_red_button:
+        #     self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
  
-        if(self.is_green_button and self.is_red_button):
-            self.axis.imshow(np.dstack((self.canaux[1][self.current_index], self.canaux[0][self.current_index], np.zeros_like(self.canaux[0][self.current_index]))))
+        # if(self.is_green_button and self.is_red_button):
+        #     self.axis.imshow(np.dstack((self.canaux[1][self.current_index], self.canaux[0][self.current_index], np.zeros_like(self.canaux[0][self.current_index]))))
         # #     fig, self.axis = plt.subplots()
         # #     red_img = np.dstack((self.canaux[0][self.current_index], np.zeros_like(self.canaux[0][self.current_index]), np.zeros_like(self.canaux[0][self.current_index])))
         # #     green_img = np.dstack((np.zeros_like(self.canaux[1][self.current_index]), self.canaux[1][self.current_index], np.zeros_like(self.canaux[0][self.current_index])))
 
         #     self.axis.imshow(red_img,alpha=1)
         #     self.axis.imshow(green_img,alpha=0.57)
+
+        dic=self.get_dic_ROI()
+        if not self.show_tags_var.get():
+            self.remove_all_tags()  # Masquer tous les tags si la case à cocher n'est pas cochée
+
+        if self.show_tags_var.get():
+            for index in dic.keys():  # Parcours de tous les indices dans le dictionnaire
+                coords=dic.get(index, {}).get('coord') 
+                liste_x=[x for x, y in coords]
+                liste_y=[y for x, y in coords]
+                self.display_tag(index,min(liste_x) ,min(liste_y))
+
+
+        # Rafraîchir l'affichage pour voir les modifications
         self.canvas.draw_idle()
+
         """ ---------------------------------------------------------------------------
         # Reshape the image to its original shape
         displayed_image = self.image.reshape(original_shape)
@@ -1012,6 +1087,13 @@ class ImageViewer(ttk.Frame):
         self.listes_graphs.append((segment_data['mean_values']))
         # Pass the data to the DataViewer
         self.data_viewer.process_segment_data(segment_data)
+        self.update_displayed_image()
+        dic=self.get_dic_ROI()
+        try:
+            coordonnees = dic[2]['coord']  # Essayez d'accéder aux coordonnées de l'élément d'indice 2
+            print(coordonnees)
+        except KeyError:
+            print("L'indice spécifié n'existe pas dans le dictionnaire.")
 
     def in_polygon(self, test):
         x, y = test
@@ -1072,20 +1154,14 @@ class ImageViewer(ttk.Frame):
             self.id_color+=1
         else : 
             self.id_color=0
+    
+    def display_tag(self, id, x, y):
+        tag_artist = self.axis.text(x, y, f"ROI {id}", color='black', fontsize=10, ha='center', va='center')
+        self.tag_artists.append(tag_artist)
 
-    # def display_tag(self):
-    #     texte = "ROI 1"
+    def remove_all_tags(self):
+        for tag_artist in self.tag_artists:
+            tag_artist.set_visible(False)
 
-    #     # Récupérer les dimensions de l'image
-    #     largeur_image = self.image.shape[1]
-    #     hauteur_image = self.image.shape[0]
-
-    #     # Définir la position du texte (ici, centré)
-    #     position_x = largeur_image / 2
-    #     position_y = hauteur_image / 2
-
-    #     # Ajouter le texte sur l'axe Matplotlib
-    #     self.axis.text(position_x, position_y, texte, color='black', fontsize=12, ha='center', va='center')
-
-    #     # Rafraîchir l'affichage pour voir les modifications
-    #     plt.draw()
+    def get_dic_ROI(self):
+        return self.GUI.get_dic_ROI()

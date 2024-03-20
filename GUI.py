@@ -37,7 +37,7 @@ class GUI(tk.Toplevel):
         main_container.add(file_explorer_frame, minsize=100)  # Set minimum size
         
         #Image Viewer
-        self.image_viewer = ImageViewer(main_container)
+        self.image_viewer = ImageViewer(main_container,self)
         #self.image_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         main_container.add(self.image_viewer, minsize=200)  # Set minimum size
         self.image_viewer.disable_functionalities_pre_load()
@@ -123,6 +123,9 @@ class GUI(tk.Toplevel):
 
     def get_project_path(self):
         return self.load_screen.get_project_path()
+    
+    def get_dic_ROI(self):
+        return self.data_viewer.get_dic_ROI()
     
     def get_image_path(self):
         return self.load_screen.get_image_path()

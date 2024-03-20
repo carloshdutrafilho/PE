@@ -215,3 +215,6 @@ class DataViewer(ttk.Frame):
 
     def set_graph_viewer(self, graph_viewer):
         self.graph_viewer = graph_viewer
+
+    def get_dic_ROI(self):
+        return self.ROI_data

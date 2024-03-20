@@ -16,9 +16,6 @@ import csv
 from tkinter import messagebox
 import matplotlib.text as text
 from pprint import pprint
-from tkinter import messagebox
-import matplotlib.text as text
-from pprint import pprint
 
 
 class ImageViewer(ttk.Frame):
@@ -28,7 +25,7 @@ class ImageViewer(ttk.Frame):
         self.current_index = 0 #Index for Slider
         self.normalized_image_array_red = np.zeros((1,1,1))
         self.normalized_image_array_green = np.zeros((1,1,1))
-        self.GUI=GUI        
+       
         self.GUI=GUI        
         self.is_image_black = True
         self.saturation_pixels_min = 0.1
@@ -252,6 +249,8 @@ class ImageViewer(ttk.Frame):
         self.sequence=imageio.volread(r'C:\Users\tombo\Downloads\220728-S2_04_500mV.ome.tiff')
         self.reset_image()
         self.canaux = {}
+        self.sequence=imageio.volread(r'C:\Users\tombo\Downloads\220728-S2_04_500mV.ome.tiff')
+
     
     def disable_functionalities_pre_load(self):
         self.red_button.config(state="disabled")
@@ -280,7 +279,7 @@ class ImageViewer(ttk.Frame):
         self.threshold_max_slider.config(state="normal")
         #self.image_slider.config(state="normal")
         self.moyennage_entry.config(state="normal")
-        self.sequence=imageio.volread(r'C:\Users\tombo\Downloads\220728-S2_04_500mV.ome.tiff')
+
 
 
     def set_data_viewer(self, data_viewer):
@@ -707,7 +706,7 @@ class ImageViewer(ttk.Frame):
  
         if(self.is_green_button and self.is_red_button):
             self.axis.imshow(np.dstack((self.canaux[1][self.current_index], self.canaux[0][self.current_index], np.zeros_like(self.canaux[0][self.current_index]))))
-        # #     fig, self.axis = plt.subplots()
+        #     fig, self.axis = plt.subplots()
         # #     red_img = np.dstack((self.canaux[0][self.current_index], np.zeros_like(self.canaux[0][self.current_index]), np.zeros_like(self.canaux[0][self.current_index])))
         # #     green_img = np.dstack((np.zeros_like(self.canaux[1][self.current_index]), self.canaux[1][self.current_index], np.zeros_like(self.canaux[0][self.current_index])))
 
@@ -727,23 +726,7 @@ class ImageViewer(ttk.Frame):
 
 
         # Rafraîchir l'affichage pour voir les modifications
-
-        dic=self.get_dic_ROI()
-        if not self.show_tags_var.get():
-            self.remove_all_tags()  # Masquer tous les tags si la case à cocher n'est pas cochée
-
-        if self.show_tags_var.get():
-            for index in dic.keys():  # Parcours de tous les indices dans le dictionnaire
-                coords=dic.get(index, {}).get('coord') 
-                liste_x=[x for x, y in coords]
-                liste_y=[y for x, y in coords]
-                self.display_tag(index,min(liste_x) ,min(liste_y))
-
-
-        # Rafraîchir l'affichage pour voir les modifications
         self.canvas.draw_idle()
-
-
         """ ---------------------------------------------------------------------------
         # Reshape the image to its original shape
         displayed_image = self.image.reshape(original_shape)
@@ -1134,13 +1117,6 @@ class ImageViewer(ttk.Frame):
             print(coordonnees)
         except KeyError:
             print("L'indice spécifié n'existe pas dans le dictionnaire.")
-        self.update_displayed_image()
-        dic=self.get_dic_ROI()
-        try:
-            coordonnees = dic[2]['coord']  # Essayez d'accéder aux coordonnées de l'élément d'indice 2
-            print(coordonnees)
-        except KeyError:
-            print("L'indice spécifié n'existe pas dans le dictionnaire.")
 
     def in_polygon(self, test):
         x, y = test
@@ -1213,13 +1189,3 @@ class ImageViewer(ttk.Frame):
     def get_dic_ROI(self):
         return self.GUI.get_dic_ROI()
     
-    def display_tag(self, id, x, y):
-        tag_artist = self.axis.text(x, y, f"ROI {id}", color='black', fontsize=10, ha='center', va='center')
-        self.tag_artists.append(tag_artist)
-
-    def remove_all_tags(self):
-        for tag_artist in self.tag_artists:
-            tag_artist.set_visible(False)
-
-    def get_dic_ROI(self):
-        return self.GUI.get_dic_ROI()

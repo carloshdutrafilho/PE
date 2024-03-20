@@ -249,7 +249,7 @@ class ImageViewer(ttk.Frame):
         self.sequence=imageio.volread(r'C:\Users\tombo\Downloads\220728-S2_04_500mV.ome.tiff')
         self.reset_image()
         self.canaux = {}
-        self.sequence=imageio.volread(r'C:\Users\tombo\Downloads\220728-S2_04_500mV.ome.tiff')
+
 
     
     def disable_functionalities_pre_load(self):
@@ -1179,7 +1179,7 @@ class ImageViewer(ttk.Frame):
             self.id_color=0
     
     def display_tag(self, id, x, y):
-        tag_artist = self.axis.text(x, y, f"ROI {id}", color='black', fontsize=10, ha='center', va='center')
+        tag_artist = self.axis.text(x, y, f"ROI {id}", color='white', fontsize=10, ha='center', va='center')
         self.tag_artists.append(tag_artist)
 
     def remove_all_tags(self):

@@ -27,7 +27,7 @@ class ImageViewer(ttk.Frame):
         self.saturation_pixels_max = 99.8
         self.contrast_value = 0
         self.brightness_value = 0        
-        self.sequence = imageio.volread(r'C:\Users\carlo\Downloads\transfer_6891262_files_d43c2e32\220728-S2_04_500mV.ome.tiff')
+        # self.sequence = imageio.volread(r'C:\Users\carlo\Downloads\transfer_6891262_files_d43c2e32\220728-S2_04_500mV.ome.tiff')
 
         self.data_viewer = None
         self.graph_viewer=None
@@ -186,7 +186,7 @@ class ImageViewer(ttk.Frame):
         
         # Create a container for parameters and sliders
         self.parameters_container = ttk.Frame(self)
-        self.parameters_container.pack(side=tk.TOP, pady=4)
+        self.parameters_container.pack(side=tk.TOP, pady=1)
 
         # Brightness adjustment
         self.brightness_label = ttk.Label(self.parameters_container, text="Brightness=")
@@ -201,7 +201,7 @@ class ImageViewer(ttk.Frame):
         self.contrast_slider.grid(row=0, column=3, padx=10, pady=5)
 
         # Temporal averaging entry
-        self.moyennage_label = ttk.Label(self.parameters_container, text="Temp. averaging=")
+        self.moyennage_label = ttk.Label(self.parameters_container, text="Temporal averaging=")
         self.moyennage_label.grid(row=0, column=4, padx=5, pady=5)
         self.moyennage_entry = ttk.Entry(self.parameters_container, width=10)
         self.moyennage_entry.grid(row=0, column=5, padx=10, pady=5)
@@ -220,7 +220,7 @@ class ImageViewer(ttk.Frame):
         self.threshold_max_slider.set(255)
 
         # Save button
-        self.save_button = tk.Button(self.parameters_container,text="Sauvegarder les paramètres",command=self.save_parameters )
+        self.save_button = tk.Button(self.parameters_container,text="Apply to all images ",command=self.save_parameters )
         self.save_button.grid(row = 1,column = 4,pady = 5 )
         # Temporal averaging variables
         self.window_size = 1  # Initial window size
@@ -415,6 +415,7 @@ class ImageViewer(ttk.Frame):
         # self.contrast()
         self.contrast_and_brightness()
         self.update_displayed_image()
+        self.update_parameters_label()
 
         # Update the displayed image using Matplotlib------------------------
         # self.axis.imshow(contrasted_image, cmap='gray')
@@ -451,6 +452,8 @@ class ImageViewer(ttk.Frame):
         # self.brightness()
         self.contrast_and_brightness()
         self.update_displayed_image()
+        
+        self.update_parameters_label()
         # Update the displayed image using Matplotlib
         # self.axis.imshow(brightened_image, cmap='gray')
         # self.canvas.draw_idle()
@@ -562,7 +565,7 @@ class ImageViewer(ttk.Frame):
         self.contrast_and_brightness()
         self.update_displayed_image()  
         # Update the parameters label with the current values
-        self.update_parameters_label(threshold_min=self.threshold_min, threshold_max=self.threshold_max)
+        self.update_parameters_label()
         
 
         # Apply threshold adjustment
@@ -587,24 +590,18 @@ class ImageViewer(ttk.Frame):
             self.canaux[1][self.current_index][self.normalized_image_array_red[self.current_index]>self.threshold_max] = 255
         #return thresholded_image[1]
     
-    def update_parameters_label(self, brightness=None, contrast=None, threshold_min=None, threshold_max=None):
+    def update_parameters_label(self):
         # Get the current label text
         current_text = self.parameters_label.cget("text")
 
         # Extract the previously set values from the current label text
-        previous_brightness = current_text.split("\n")[0].split(": ")[1]
-        previous_contrast = current_text.split("\n")[1].split(": ")[1]
-        previous_threshold_min = current_text.split("\n")[2].split(": ")[1]
-        previous_threshold_max = current_text.split("\n")[3].split(": ")[1]
-
-        # Set the values to the previous values if they are None
-        brightness = previous_brightness if brightness is None else brightness
-        contrast = previous_contrast if contrast is None else contrast
-        threshold_min = previous_threshold_min if threshold_min is None else threshold_min
-        threshold_max = previous_threshold_max if threshold_max is None else threshold_max
+        # brightness = self.brightness_value.split("\n")[0].split(": ")[1]
+        # contrast = self.contrast_value.split("\n")[1].split(": ")[1]
+        # threshold_min = self.threshold_min.split("\n")[2].split(": ")[1]
+        # threshold_max = self.threshold_max.split("\n")[3].split(": ")[1]
 
         # Update the parameters label with the current values
-        parameters_text = f"Contrast: {contrast}\nBrightness: {brightness}\nThreshold Min: {threshold_min}\nThreshold Max: {threshold_max}  "
+        parameters_text = f"Contrast: {self.contrast_value}\nBrightness: {self.brightness_value}\nThreshold Min: {self.threshold_min}\nThreshold Max: {self.threshold_max}  "
         self.parameters_label.config(text=parameters_text)
     
     def update_displayed_image(self):

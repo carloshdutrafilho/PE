@@ -13,8 +13,9 @@ class GraphViewer(tk.Frame):
         # Data structures
         self.ROI_data = {}
         self.selected_ROI_index = 1
-        self.colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+        self.colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
         self.selected_color = ''
+        self.id_color = -1
 
         self.image_container = tk.Frame(self)
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
@@ -104,9 +105,13 @@ class GraphViewer(tk.Frame):
         self.process_to_graph()
 
     def select_color(self):
-        self.selected_color = self.colors[self.selected_ROI_index-1]
+        if self.id_color<7:
+            self.id_color+=1
+        else : 
+            self.id_color=0
 
     def process_to_graph(self):
+        self.select_color()
         if self.axis is None:
             self.axis = self.figure.add_subplot(111)
 
@@ -129,7 +134,7 @@ class GraphViewer(tk.Frame):
 
             self.select_color()
 
-            self.axis.plot(x_data, y_data, color=self.selected_color, linestyle='-', label=f'ROI {self.selected_ROI_index}')
+            self.axis.plot(x_data, y_data, color=self.colors[self.id_color], linestyle='-', label=f'ROI {self.selected_ROI_index}')
 
             self.axis.set_xlabel('Time')
             self.axis.set_ylabel('Mean Intensity')

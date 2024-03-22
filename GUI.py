@@ -62,45 +62,45 @@ class GUI(tk.Toplevel):
         self.load_screen = LoadScreen(self.master, app=self, image_viewer=self.image_viewer)
         
         # Create a menu bar
-        menubar = tk.Menu(self)
+        self.menubar = tk.Menu(self)
         
         # File menu
-        file_menu = tk.Menu(menubar, tearoff=0)
-        file_menu.add_command(label="Upload file...", accelerator="Ctrl+U", command=self.open_file)
+        self.file_menu = tk.Menu(self.menubar, tearoff=0)
+        self.file_menu.add_command(label="Upload file...", accelerator="Ctrl+U", command=self.open_file)
 
         # Open Recent menu
-        self.open_recent_menu = tk.Menu(file_menu, tearoff=0)
-        file_menu.add_cascade(label="Open Recent", menu=self.open_recent_menu)
+        self.open_recent_menu = tk.Menu(self.file_menu, tearoff=0)
+        self.file_menu.add_cascade(label="Open Recent", menu=self.open_recent_menu)
 
-        file_menu.add_command(label="New Window", accelerator="Ctrl+N", command=self.new_window)
-        file_menu.add_separator()
-        file_menu.add_command(label="Save", accelerator="Ctrl+S", command=self.save)
-        file_menu.add_command(label="Save As...", accelerator="Ctrl+Shift+S", command=self.save_as)
-        file_menu.add_command(label="Save All", accelerator="Ctrl+K", command=self.save_all)
-        file_menu.add_separator()
-        file_menu.add_command(label="Close Window", accelerator="Alt+F4", command=self.close_window)
-        file_menu.add_separator()
-        file_menu.add_command(label="Exit", accelerator="Ctrl+E", command=self.quit)
-        menubar.add_cascade(label="File", menu=file_menu)
+        self.file_menu.add_command(label="New Window", accelerator="Ctrl+N", command=self.new_window)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label="Save", accelerator="Ctrl+S", command=self.save)
+        self.file_menu.add_command(label="Save As...", accelerator="Ctrl+Shift+S", command=self.save_as)
+        self.file_menu.add_command(label="Save All", accelerator="Ctrl+K", command=self.save_all)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label="Close Window", accelerator="Alt+F4", command=self.close_window)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label="Exit", accelerator="Ctrl+E", command=self.quit)
+        self.menubar.add_cascade(label="File", menu=self.file_menu)
 
-        # Store the file_menu as an instance variable
-        self.file_menu = file_menu
+        # # Store the file_menu as an instance variable
+        # self.file_menu = file_menu
         
         # Edit menu
-        edit_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Edit", menu=edit_menu)
+        self.edit_menu = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Edit", menu=self.edit_menu)
         
         # Preferences menu
-        preferences_menu = tk.Menu(menubar, tearoff=0)
-        preferences_menu.add_command(label="Mode", command=self.show_preferences)
-        menubar.add_cascade(label="Preferences", menu=preferences_menu)
+        self.preferences_menu = tk.Menu(self.menubar, tearoff=0)
+        self.preferences_menu.add_command(label="Mode", command=self.show_preferences)
+        self.menubar.add_cascade(label="Preferences", menu=self.preferences_menu)
         
         # Help menu
-        help_menu = tk.Menu(menubar, tearoff=0)
-        help_menu.add_command(label="About", command=self.show_about)
-        menubar.add_cascade(label="Help", menu=help_menu)
+        self.help_menu = tk.Menu(self.menubar, tearoff=0)
+        self.help_menu.add_command(label="About", command=self.show_about)
+        self.menubar.add_cascade(label="Help", menu=self.help_menu)
 
-        self.config(menu=menubar)
+        self.config(menu=self.menubar)
     
         # Variable to track night mode
         self.night_mode = tk.BooleanVar()
@@ -112,6 +112,33 @@ class GUI(tk.Toplevel):
         # List to store recently used files
         self.recent_files = [] 
         self.protocol("WM_DELETE_WINDOW", self.quit_software)
+    
+            # Adicione o menu "View"
+        self.view_menu = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="View", menu=self.view_menu)
+
+        # Adicione uma subopção para segmentações ROI
+        self.roi_menu = tk.Menu(self.view_menu, tearoff=0)
+        self.view_menu.add_cascade(label="ROI Segmentations", menu=self.roi_menu)
+
+        # Adicione itens de menu para cada segmentação ROI
+        self.roi_visibility_vars = []  # Variáveis para rastrear a visibilidade de cada ROI
+    
+    def update_ROI_visibility_list(self):
+        self.roi_visibility_vars.clear()
+        self.roi_menu.delete(0, tk.END)  
+        for i in range(len(self.image_viewer.ROI_objects)):
+            visibility_var = tk.BooleanVar(value=True)
+            if (not self.image_viewer.ROI_objects[i]['seg'][0].get_visible()):
+                visibility_var = tk.BooleanVar(value=False)
+            self.roi_visibility_vars.append(visibility_var)
+            self.roi_menu.add_checkbutton(label=f"ROI {i+1}", variable=visibility_var,
+                                     command=lambda index=i: self.toggle_roi_visibility(index))
+
+    def toggle_roi_visibility(self, index):
+        # Toggle the visibility of ROI at given index
+        visibility = self.roi_visibility_vars[index].get()
+        self.image_viewer.toggle_ROI_visibility(index, visibility)
 
     def quit_software(self):
         self.quit()

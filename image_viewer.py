@@ -173,6 +173,9 @@ class ImageViewer(ttk.Frame):
         self.x_in = []
         self.y_in = []
         self.listes_graphs=[]
+        self.temp_ROI_points = [[] for _ in range(250)]
+        self.ROI_index = 0
+        self.ROI_objects = {}
         self.id_color=-1 
         self.marker_styles_point = ['b.', 'g.', 'r.', 'c.', 'm.', 'y.', 'k.', 'w.']
         self.marker_styles_line = ['b-', 'g-', 'r-', 'c-', 'm-', 'y-', 'k-', 'w-']
@@ -249,7 +252,7 @@ class ImageViewer(ttk.Frame):
         self.image = None
         self.color_mode = 'gray'  # Initial color mode
         
-        self.sequence=imageio.volread(r'C:\Users\tombo\Downloads\220728-S2_04_500mV.ome.tiff')
+        self.sequence=imageio.volread(r'C:\Users\carlo\Downloads\transfer_6891262_files_d43c2e32\220728-S2_04_500mV.ome.tiff')
         self.reset_image()
         self.canaux = {}
     
@@ -266,6 +269,8 @@ class ImageViewer(ttk.Frame):
         self.threshold_max_slider.config(state="disabled")
         #self.image_slider.config(state="disabled")
         self.moyennage_entry.config(state="disabled")
+        self.save_button.config(state="disabled")
+        self.show_tags_checkbutton.config(state="disabled")
     
     def enable_functionalities_post_load(self):
         self.red_button.config(state="normal")
@@ -280,7 +285,8 @@ class ImageViewer(ttk.Frame):
         self.threshold_max_slider.config(state="normal")
         #self.image_slider.config(state="normal")
         self.moyennage_entry.config(state="normal")
-        self.sequence=imageio.volread(r'C:\Users\tombo\Downloads\220728-S2_04_500mV.ome.tiff')
+        self.save_button.config(state="normal")
+        self.show_tags_checkbutton.config(state="normal")
 
 
     def set_data_viewer(self, data_viewer):
@@ -414,7 +420,6 @@ class ImageViewer(ttk.Frame):
         self.slider = Slider(ax_slider, 'Image', 0, self.canaux[1].shape[0]-1, valinit=0)
         print(self.canaux[1].shape[0])
         self.slider.on_changed(self.update_image)
-
 
     # def load_image(self, image_path):
     #     # Load and display image using Matplotlib
@@ -704,7 +709,7 @@ class ImageViewer(ttk.Frame):
             self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
         if self.is_red_button:
             self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
- 
+
         if(self.is_green_button and self.is_red_button):
             self.axis.imshow(np.dstack((self.canaux[1][self.current_index], self.canaux[0][self.current_index], np.zeros_like(self.canaux[0][self.current_index]))))
         # #     fig, self.axis = plt.subplots()
@@ -1043,6 +1048,7 @@ class ImageViewer(ttk.Frame):
             self.update_color()
             self.segment_x_points = []
             self.segment_y_points = []
+            self.temp_ROI_points = []
             self.segmentation_button.config(text="Stop Segmentation")
         else:
             # Process segments and update the displayed image
@@ -1061,24 +1067,17 @@ class ImageViewer(ttk.Frame):
         self.segment_y_points.append(event.ydata)
 
         # Draw a red dot at the clicked point
-        self.axis.plot(event.xdata, event.ydata, self.marker_styles_point[self.id_color])
+        self.temp_ROI_points.append(self.axis.plot(event.xdata, event.ydata, self.marker_styles_point[self.id_color]))
         self.canvas.draw()
 
-    ##### !!!THIS METHOD NEEDS TO STAY HERE. NOT TESTED YET USING TIFFFILE TO EXTRACT THE IMAGES!!!
-    # def clear_segments(self):
-    #     self.axis.clear()
-    #     self.segment_x_points = []
-    #     self.segment_y_points = []
-    #     self.canvas.draw()
-    ##### !!!THIS METHOD NEEDS TO STAY HERE. NOT TESTED YET USING TIFFFILE TO EXTRACT THE IMAGES!!!
-
     def reset_context_for_segments_csv(self):
-        self.id_color = -1
-
+        #self.id_color = -1
+        return
         #self.clear_segments()
 
-
     def draw_segments_from_csv(self, coordinates):
+        self.temp_ROI_points = []
+        
         if (len(coordinates) < 3):
             messagebox.showerror("Error", "Not enough points to form a segment in one of the ROIs imported.")
             return
@@ -1091,9 +1090,18 @@ class ImageViewer(ttk.Frame):
         for pair in coordinates:
             segment_x_points.append(pair[0])
             segment_y_points.append(pair[1])
+            self.temp_ROI_points.append(self.axis.plot(segment_x_points, segment_y_points, self.marker_styles_point[self.id_color]))
         
-        self.axis.plot(segment_x_points, segment_y_points, self.marker_styles_line[self.id_color])
+        temp_segment = self.axis.plot(segment_x_points, segment_y_points, self.marker_styles_line[self.id_color])
+        temp_points = self.temp_ROI_points[:]
+
+        self.ROI_objects[self.ROI_index] = {
+                'seg': temp_segment,
+                'points': temp_points
+                }
+        self.update_ROI_visibility_list()
         self.canvas.draw()
+        self.ROI_index += 1
 
     def process_segments(self):
         if len(self.segment_x_points) < 3:
@@ -1108,7 +1116,16 @@ class ImageViewer(ttk.Frame):
         segment_y_array = np.array(self.segment_y_points)
 
         # Draw the closed segment on the displayed image
-        self.axis.plot(segment_x_array, segment_y_array, self.marker_styles_line[self.id_color])
+        temp_segment = self.axis.plot(segment_x_array, segment_y_array, self.marker_styles_line[self.id_color])
+        temp_points = self.temp_ROI_points[:]
+        self.temp_ROI_points = []
+
+        self.ROI_objects[self.ROI_index] = {
+            'seg': temp_segment,
+            'points': temp_points
+        }
+        self.ROI_index += 1
+        self.update_ROI_visibility_list()
         self.canvas.draw()
 
         # Get coordinates of points inside the polygon
@@ -1129,18 +1146,6 @@ class ImageViewer(ttk.Frame):
         self.data_viewer.process_segment_data(segment_data)
         self.update_displayed_image()
         dic=self.get_dic_ROI()
-        try:
-            coordonnees = dic[2]['coord']  # Essayez d'accéder aux coordonnées de l'élément d'indice 2
-            print(coordonnees)
-        except KeyError:
-            print("L'indice spécifié n'existe pas dans le dictionnaire.")
-        self.update_displayed_image()
-        dic=self.get_dic_ROI()
-        try:
-            coordonnees = dic[2]['coord']  # Essayez d'accéder aux coordonnées de l'élément d'indice 2
-            print(coordonnees)
-        except KeyError:
-            print("L'indice spécifié n'existe pas dans le dictionnaire.")
 
     def in_polygon(self, test):
         x, y = test
@@ -1194,13 +1199,23 @@ class ImageViewer(ttk.Frame):
         except Exception as e:
             print("Error calculating mean over time:", e)
             return None
-        
+    
+    def toggle_ROI_visibility(self, index, visibility):
+        # Toggle the visibility of a segment
+        self.ROI_objects[index]['seg'][0].set_visible(visibility)
+        for points_list in self.ROI_objects[index]['points']:
+            for point in points_list:
+                point.set_visible(visibility)
+        self.canvas.draw_idle()
             
     def update_color(self):
         if self.id_color<7:
             self.id_color+=1
         else : 
             self.id_color=0
+
+    def update_ROI_visibility_list(self):
+        self.GUI.update_ROI_visibility_list()
     
     def display_tag(self, id, x, y):
         tag_artist = self.axis.text(x, y, f"ROI {id}", color='black', fontsize=10, ha='center', va='center')

@@ -80,11 +80,9 @@ class DataViewer(ttk.Frame):
         means_data = (list(range(1, len(mean_values))), mean_values[:-1])
 
         if self.ROI_data == {}:
-            next_index = 1
+            self.selected_ROI_index = 1
         else:
-            next_index = max(self.ROI_data.keys()) + 1
-        
-        self.selected_ROI_index = next_index
+            self.selected_ROI_index = max(self.ROI_data.keys()) + 1
 
         self.ROI_data[self.selected_ROI_index] = {'coord': coordinates, 'means': means_data}
 
@@ -159,9 +157,6 @@ class DataViewer(ttk.Frame):
     def process_data_from_csv(self, header, data):
         # Remove the previous data
         self.data_tree_clean_rebuild()
-        self.ROI_data = {}
-        self.current_page = {}
-        self.total_pages = {}
         self.GUI.reset_context_for_segments_csv()
 
         # Process the new data
@@ -172,16 +167,20 @@ class DataViewer(ttk.Frame):
                 means = eval(row[2])
                 means = (list(range(1, len(means))), means[:-1])
 
-                self.ROI_data[roi_index] = {'coord': coord, 
+                next_index = 1
+                if len(self.ROI_data) != 0:
+                    next_index = max(self.ROI_data.keys()) + 1
+
+                self.ROI_data[next_index] = {'coord': coord, 
                                             'means': means }
                 self.GUI.draw_segments_from_csv(coord)
                 # self.listes_graphs.append((self.ROI_data[roi_index]['means'][1]))
                 # self.graph_viewer.process_to_graph(list(range(0, len(self.listes_graphs[0]))),self.listes_graphs)
 
-                self.current_page[roi_index] = 0
-                self.total_pages[roi_index] = (len(self.ROI_data[roi_index]['means'][1]) / self.page_size) + 1
-
-        self.selected_ROI_index = 1
+                self.current_page[next_index] = 0
+                self.total_pages[next_index] = (len(self.ROI_data[next_index]['means'][1]) / self.page_size) + 1
+                self.selected_ROI_index = next_index
+            
         self.update_ROI_combobox()
         self.display_data()
         self.generate_graphs()

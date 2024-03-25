@@ -21,12 +21,15 @@ class DataViewer(ttk.Frame):
         tree_frame = ttk.Frame(self)
         tree_frame.pack(side=tk.TOP, padx=10, pady=10)
 
-        self.tree = ttk.Treeview(tree_frame, columns=('Index', 'Mean Intensity'), show='headings', selectmode='browse')
+        self.tree = ttk.Treeview(tree_frame, columns=('Index', 'Mean Intensity Green','Mean Intensity Red'), show='headings', selectmode='browse')
         self.tree.heading('#1', text='Index')
         self.tree.column('#1', width=50)  
 
-        self.tree.heading('#2', text='Mean Intensity')
+        self.tree.heading('#2', text='Mean Intensity Green')
         self.tree.column('#2', width=100)  
+
+        self.tree.heading('#3', text='Mean Intensity Red')
+        self.tree.column('#3', width=100)  
         self.tree.pack(side=tk.LEFT)
 
         scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=self.tree.yview)
@@ -74,17 +77,24 @@ class DataViewer(ttk.Frame):
     def process_segment_data(self, segment_data):
         segment_x_array = segment_data['segment_x_array']
         segment_y_array = segment_data['segment_y_array']
-        mean_values = segment_data['mean_values']
-
+        mean_values_green = segment_data['mean_values'][0]
+        mean_values_red= segment_data['mean_values'][1]
         coordinates = [(x, y) for x, y in zip(segment_x_array, segment_y_array)]
-        means_data = (list(range(1, len(mean_values))), mean_values[:-1])
+        means_data = (list(range(1, len(mean_values_green))), mean_values_green[:-1],mean_values_red[:-1])
 
         if self.ROI_data == {}:
             self.selected_ROI_index = 1
         else:
             self.selected_ROI_index = max(self.ROI_data.keys()) + 1
 
-        self.ROI_data[self.selected_ROI_index] = {'coord': coordinates, 'means': means_data}
+        self.ROI_data[self.selected_ROI_index] = {
+            'coord': coordinates, 
+            'means': {
+            0: mean_values_green,
+            1: mean_values_red
+            }
+        }
+
 
         self.total_pages[self.selected_ROI_index] = (len(self.ROI_data[self.selected_ROI_index]['means'][1]) / self.page_size) + 1 
         self.current_page[self.selected_ROI_index] = 0 
@@ -97,7 +107,8 @@ class DataViewer(ttk.Frame):
     def data_tree_clean_rebuild(self):
         self.tree.delete(*self.tree.get_children())
         self.tree.heading('#1', text='Index')
-        self.tree.heading('#2', text='Mean Intensity')
+        self.tree.heading('#2', text='Mean Intensity Green')
+        self.tree.heading('#3', text='Mean Intensity Red') 
 
     def new_selection_display_data(self):
         self.data_tree_clean_rebuild()
@@ -111,8 +122,16 @@ class DataViewer(ttk.Frame):
         start_row = self.current_page[self.selected_ROI_index] * self.page_size
         end_row = start_row + self.page_size
 
-        for i, (index, mean_intensity) in enumerate(zip(self.ROI_data[self.selected_ROI_index]['means'][0][start_row:end_row], self.ROI_data[self.selected_ROI_index]['means'][1][start_row:end_row]), start_row + 1):
-            self.tree.insert('', 'end', values=[index, round(mean_intensity, 2)])
+        # Récupérer les données pour les deux canaux
+        mean_values_green = self.ROI_data[self.selected_ROI_index]['means'][0]
+        mean_values_red = self.ROI_data[self.selected_ROI_index]['means'][1]
+
+        # Récupérer les valeurs de l'intensité moyenne pour les deux canaux
+        mean_intensities_green = mean_values_green[start_row:end_row]
+        mean_intensities_red = mean_values_red[start_row:end_row]   
+
+        for i, (index, mean_intensity_green, mean_intensity_red) in enumerate(zip(range(start_row, end_row), mean_intensities_green, mean_intensities_red), start=start_row + 1):
+                self.tree.insert('', 'end', values=[index, round(mean_intensity_green, 2), round(mean_intensity_red, 2)])
 
     def save_as_csv(self):
         project_path = self.get_project_path()
@@ -123,11 +142,11 @@ class DataViewer(ttk.Frame):
             image_path = self.GUI.get_image_path()
             image_name = os.path.basename(image_path)
             csv_writer.writerow([f'Image-{image_name}'])
-            temp_row = ['ROI', 'Coord', 'Intensity_Mean']
+            temp_row = ['ROI', 'Coord', 'Intensity_Mean_Green','Intensity_Mean_Red']
             csv_writer.writerow(temp_row)
 
             for roi_index, roi_data in self.ROI_data.items():
-                row_data = [roi_index, str(roi_data['coord']), str(roi_data['means'][1])]
+                row_data = [roi_index, str(roi_data['coord']), str(roi_data['means'][0]),str(roi_data['means'][1])]
                 csv_writer.writerow(row_data)
 
         messagebox.showinfo("Save Successful", f"Data saved to project folder.")
@@ -158,21 +177,33 @@ class DataViewer(ttk.Frame):
         # Remove the previous data
         self.data_tree_clean_rebuild()
         self.GUI.reset_context_for_segments_csv()
-
+        print('Taille Data:',len(data))
         # Process the new data
         for row in data:
             if row[0] != 'ROI':
                 roi_index = int(row[0])
                 coord = eval(row[1])
-                means = eval(row[2])
+                means_green = eval(row[2])
+                means_red=eval(row[3])
+                
                 means = (list(range(1, len(means))), means[:-1])
 
                 next_index = 1
                 if len(self.ROI_data) != 0:
                     next_index = max(self.ROI_data.keys()) + 1
 
-                self.ROI_data[next_index] = {'coord': coord, 
-                                            'means': means }
+                mean_values_green = means[0]
+                mean_values_red = means[1]
+                means_green = (list(range(1, len(mean_values_green))), mean_values_green[:-1])
+                means_red = (list(range(1, len(mean_values_red))), mean_values_red[:-1])
+
+                self.ROI_data[next_index] = {
+                'coord': coord,
+                'means': {
+                    0: means_green,  # Canal vert
+                    1: means_red     # Canal rouge
+                }
+                }
                 self.GUI.draw_segments_from_csv(coord)
                 # self.listes_graphs.append((self.ROI_data[roi_index]['means'][1]))
                 # self.graph_viewer.process_to_graph(list(range(0, len(self.listes_graphs[0]))),self.listes_graphs)
@@ -186,9 +217,13 @@ class DataViewer(ttk.Frame):
         self.generate_graphs()
     
     def generate_graphs(self):
+        
         self.graph_viewer.set_ROI_data(self.ROI_data)
         self.graph_viewer.update_displayed_ROI(self.selected_ROI_index)
-        self.graph_viewer.process_to_graph()
+        self.graph_viewer.process_to_graph(channel=0)  # Afficher le graphique pour le canal vert
+        self.graph_viewer.process_to_graph(channel=1)
+         
+        #self.graph_viewer.clean_graph()
 
     def update_ROI_combobox(self):
         self.ROI_combobox['values'] = list(self.ROI_data.keys())

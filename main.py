@@ -1,4 +1,5 @@
 # main.py
+# Contains the Application class, responsible for initializing the GUI class and the whole application.
 from tkinter import Tk
 from GUI import GUI
 

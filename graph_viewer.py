@@ -1,3 +1,6 @@
+# graph_viewer.py
+# Contains the GraphViewer class, responsible for displaying the graph of the selected ROI. 
+# The user can select the color channel to display and compare the ROIs.
 import tkinter as tk
 from tkinter import messagebox, ttk, Toplevel
 from matplotlib.figure import Figure
@@ -9,6 +12,7 @@ from tkinter import Checkbutton
 
 class GraphViewer(tk.Frame):
     def __init__(self, master=None):
+        # Initialize the GraphViewer class with the given parameters.
         super().__init__(master)
 
         # Data structures
@@ -28,8 +32,6 @@ class GraphViewer(tk.Frame):
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         self.color_mode = 'grayscale'
-        # self.plot_button = tk.Button(self.image_container, text="Plot graph", command=lambda: self.plot_data('dataset2.csv'))
-        # self.plot_button.pack(side=tk.TOP, anchor=tk.SW, padx=10, pady=10)
         self.is_color_changed = False
     
         self.compare_button = ttk.Button(self, text="Compare ROIs", command=self.compare_ROIs)
@@ -37,9 +39,9 @@ class GraphViewer(tk.Frame):
 
         # Checkbuttons for displaying red and green channels
         self.display_red_var = tk.BooleanVar()
-        self.display_red_var.set(False)  # Par défaut, non sélectionné
+        self.display_red_var.set(False)  
         self.display_green_var = tk.BooleanVar()
-        self.display_green_var.set(False)  # Par défaut, non sélectionné
+        self.display_green_var.set(False) 
 
         self.display_red_checkbox = tk.Checkbutton(self, text="Display Red Channel", variable=self.display_red_var,
                                                     command=lambda: self.update_displayed_ROI(self.selected_ROI_index))
@@ -49,41 +51,28 @@ class GraphViewer(tk.Frame):
                                                     command=lambda: self.update_displayed_ROI(self.selected_ROI_index))
         self.display_green_checkbox.pack(side=tk.TOP, padx=15, pady=5)
 
-    
-    def clean_graph(self):
+    def clean_graph(self): # Clear the graph for new data
         self.axis.clear()
         self.canvas.draw()
 
-    def disable_functionalities_pre_load(self):
+    def disable_functionalities_pre_load(self): # Disable functionalities before loading the image
         self.compare_button.config(state="disabled")
 
-    def enable_functionalities_post_load(self):
+    def enable_functionalities_post_load(self): # Enable functionalities after loading the image
         self.compare_button.config(state="normal")
 
-    def compare_ROIs(self):
+    def compare_ROIs(self): # Function for comparing ROIs
         if len(self.ROI_data) < 2:
             messagebox.showinfo("Error", "There must be at least two ROIs available for comparison.")
             return
 
-        compare_window = Toplevel(self)
+        compare_window = Toplevel(self) # Create a new window for comparing ROIs
         compare_window.title("Compare ROIs")
         compare_window.geometry("600x400")
-        
-        # green_button_0 = ttk.Button(compare_window, text="green")
-        # green_button_0.grid(row=0, column=1, padx=5, pady=5)
-
-        # red_button_0 = ttk.Button(compare_window, text="red")
-        # red_button_0.grid(row=0, column=2, padx=5, pady=5)
-
-        # green_button_1 = ttk.Button(compare_window, text="green")
-        # green_button_1.grid(row=1, column=1, padx=5, pady=5)
-
-        # red_button_1 = ttk.Button(compare_window, text="red")
-        # red_button_1.grid(row=1, column=2, padx=5, pady=5)
 
         fig, ax = plt.subplots() 
 
-        def plot_comparison(selected_ROIs):
+        def plot_comparison(selected_ROIs): # Plot the comparison of the selected ROIs
             ax.clear() 
             liste=list(range(0, len(self.ROI_data)))
             print(liste)
@@ -91,15 +80,12 @@ class GraphViewer(tk.Frame):
             for ROI_index, i in zip(selected_ROIs, liste):
                 if ROI_index in self.ROI_data:
 
-                    #y_data_green = self.ROI_data[ROI_index]['means'][0]
                     y_data_green = self.ROI_data[ROI_index]['means'][0][1]
                     y_data_red=self.ROI_data[ROI_index]['means'][1][1]
-                    #x_data = (list(range(0, len(y_data_green))))
                     x_data = self.ROI_data[ROI_index]['means'][0][0]
                     x_data = [float(x) for x in x_data if isinstance(x, (int, float))]
                     y_data_green = [float(y) for y in y_data_green if isinstance(y, (int, float))]
                     y_data_red = [float(y) for y in y_data_red if isinstance(y, (int, float))]
-                    #comboboxes[0].get()
                     
                     if green_vars[i].get():
                         ax.plot(x_data, y_data_green, label=f'ROI {ROI_index} GREEN')
@@ -107,13 +93,13 @@ class GraphViewer(tk.Frame):
                         ax.plot(x_data, y_data_red, label=f'ROI {ROI_index} RED')
 
             compare_window.destroy() 
-            ax.set_xlabel('Time')
+            ax.set_xlabel('Index')
             ax.set_ylabel('Mean Intensity')
             ax.set_title('ROI Comparison')
             ax.legend()
             plt.show()
 
-        def add_combobox():
+        def add_combobox(): # Add a combobox for selecting an ROI to compare 
             if len(comboboxes) < len(self.ROI_data):
                 combobox = ttk.Combobox(compare_window, values=list(self.ROI_data.keys()), state="readonly")
                 combobox.grid(row=len(comboboxes), column=0, padx=5, pady=5)
@@ -124,7 +110,6 @@ class GraphViewer(tk.Frame):
                 green_checkbox.grid(row=len(comboboxes)-1, column=1, padx=5, pady=5)
                 green_vars.append(green_var)
 
-                # Créer un bouton à cocher rouge
                 red_var = tk.BooleanVar()
                 red_checkbox = tk.Checkbutton(compare_window, text="Red", variable=red_var)
                 red_checkbox.grid(row=len(comboboxes)-1, column=2, padx=5, pady=5)
@@ -145,10 +130,7 @@ class GraphViewer(tk.Frame):
         add_button = ttk.Button(compare_window, text="+", command=add_combobox)
         add_button.grid(row=0, column=3, padx=5, pady=5)
 
-  
-
-    def toggle_dataset(self, index):
-        # Toggle the visibility of the dataset corresponding to the given index
+    def toggle_dataset(self, index): # Toggle the visibility of the dataset corresponding to the given index
         if self.axis is not None:
             lines = self.axis.lines
             if index < len(lines):
@@ -156,10 +138,10 @@ class GraphViewer(tk.Frame):
                 line.set_visible(self.datasets_visibility[index].get())  # Get visibility from checkbox variable
                 self.canvas.draw()
 
-    def set_ROI_data(self, ROI_dict):
+    def set_ROI_data(self, ROI_dict): # Set the ROI data 
         self.ROI_data = ROI_dict
     
-    def update_displayed_ROI(self, ROI_index):
+    def update_displayed_ROI(self, ROI_index): # Update the displayed ROI from the selection
         self.selected_ROI_index = ROI_index
         display_red = self.display_red_var.get()
         display_green = self.display_green_var.get()
@@ -172,18 +154,8 @@ class GraphViewer(tk.Frame):
             
         if display_red:
             self.process_to_graph(channel=1)
- 
 
-        #self.clean_graph()
-        
-
-    def select_color(self):
-        if self.id_color<7:
-            self.id_color+=1
-        else : 
-            self.id_color=0
-
-    def process_to_graph(self, channel=0):
+    def process_to_graph(self, channel=0): # Process the data to be displayed on the graph
         if self.axis is None:
             self.axis = self.figure.add_subplot(111)
 
@@ -196,16 +168,11 @@ class GraphViewer(tk.Frame):
             return
 
         try:
- 
             y_data = self.ROI_data[self.selected_ROI_index]['means'][channel][1]
-            #x_data=list(range(0, len(y_data)))
             x_data = self.ROI_data[self.selected_ROI_index]['means'][channel][0]
             x_data = [float(x) for x in x_data]
             y_data = [float(y) for y in y_data]
 
-            #self.axis.clear()
-
-            #self.select_color()
             if channel == 0:
                 selected_color = 'green'
             else:
@@ -213,38 +180,13 @@ class GraphViewer(tk.Frame):
 
             self.axis.plot(x_data, y_data, color=selected_color, linestyle='-', label=f'ROI {self.selected_ROI_index}')
 
-            self.axis.set_xlabel('Time')
+            self.axis.set_xlabel('Index')
             self.axis.set_ylabel('Mean Intensity')
             self.axis.set_title('Graph Viewer')
 
             self.axis.set_xlim([0, len(x_data)]) 
             self.axis.set_ylim([1000, 1500]) 
 
-            # Redessiner le graphique
             self.canvas.draw()
         except Exception as e:
             print(f"Error: Unable to process data: {e}")
-
-    # def add_list_to_graph(self, new_list):
-    #     print('rentrer dans add_list')
-    #     self.list_graph.append(new_list)
-    #     visibility_var = tk.BooleanVar(value=True)
-    #     self.datasets_visibility.append(visibility_var)
-
-    # def create_roi_checkboxes(self):
-    #     for i in range(len(self.list_graph)):
-    #         visibility_var = self.datasets_visibility[i]
-            
-    #         # Vérifier si le bouton ROI pour cet index existe déjà
-    #         if i < len(self.checkboxes):
-    #             self.checkboxes[i].config(variable=visibility_var)  # Mettre à jour la variable du bouton existant
-    #         else:
-    #             checkbox = ttk.Checkbutton(self.image_container, text=f"ROI {i+1}", variable=visibility_var,
-    #                                     command=lambda idx=i: self.toggle_dataset(idx))
-    #             checkbox.pack(side=tk.BOTTOM)
-    #             self.checkboxes.append(checkbox)
-
-    # for i, (y_data, visibility_var) in enumerate(zip(y_data_list, self.datasets_visibility)):
-    #         color = colors[i % len(colors)]  # Cycle through colors if there are more than 8 datasets
-    #         if visibility_var.get():  # Check if dataset is visible
-    #             self.axis.plot(x_data, y_data, color, label=f'ROI {i+1}')

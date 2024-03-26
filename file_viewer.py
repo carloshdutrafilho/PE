@@ -1,9 +1,12 @@
+# file_viewer.py
+# Contains the FileViewer class, responsible for displaying the files and directories in the selected directory.
 import tkinter as tk
 from tkinter import ttk, filedialog
 import os
 
 class FileViewer(tk.Frame):
     def __init__(self, master=None, image_viewer=None):
+        # Initialize the FileViewer class with the given parameters.
         super().__init__(master, bg='white')
 
         self.image_viewer = image_viewer
@@ -23,23 +26,18 @@ class FileViewer(tk.Frame):
 
         self.load_default_directory()  # Load the default directory initially
 
-    def load_default_directory(self):
-        # Set the default directory
+    def load_default_directory(self): # Load the default directory
         default_directory = "C:/MedicAnalysis"
 
-        # Check if the default directory exists, if not, create it
         if not os.path.exists(default_directory):
             os.makedirs(default_directory)
 
-        # Add the default directory to the tree
         default_node = self.tree.insert("", "end", text=default_directory, open=True, tags=('drive',))
         self.load_directory_content(default_directory, default_node)
 
-    def load_selected_file(self, event):
-        # Get the selected item
+    def load_selected_file(self, event): # Load the selected file
         item = self.tree.selection()
 
-        # Check if an item is selected
         if item:
             # Get the values associated with the selected item
             values = self.tree.item(item[0], 'values')
@@ -55,8 +53,7 @@ class FileViewer(tk.Frame):
                 else:
                     self.image_viewer.load_image(file_path)
 
-    def load_directory_content(self, directory, parent_node):
-        # Clear previous content
+    def load_directory_content(self, directory, parent_node): # Load the content of the directory
         self.tree.delete(*self.tree.get_children(parent_node))
 
         # Add folders and files to the tree

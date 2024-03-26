@@ -1,5 +1,5 @@
 import string
-from tkinter import Entry, Frame, Label, Button, messagebox, ttk, filedialog
+from tkinter import Entry, Frame, Label, Button, Toplevel, messagebox, ttk, filedialog
 from tkinter.simpledialog import askstring
 from ttkthemes import ThemedStyle
 import os
@@ -107,8 +107,8 @@ class LoadScreen(Frame):
 
             os.makedirs(self.project_path)
 
-            identification_file_path = os.path.join(self.project_path, "identification.txt")
-            with open(identification_file_path, "w") as identification_file:
+            self.identification_file_path = os.path.join(self.project_path, "identification.txt")
+            with open(self.identification_file_path, "w") as identification_file:
                 identification_file.write(f"Project: {project_name}")
                 identification_file.write(f"\nPath-{file_path}")
 

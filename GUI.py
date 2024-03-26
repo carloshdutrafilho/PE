@@ -1,8 +1,9 @@
 # GUI.py
+from tkinter import ttk
 import tkinter.messagebox
 import datetime
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import OptionMenu, StringVar, filedialog
 from image_viewer import ImageViewer
 from data_viewer import DataViewer  
 from graph_viewer import GraphViewer
@@ -63,25 +64,28 @@ class GUI(tk.Toplevel):
         
         # Create a menu bar
         self.menubar = tk.Menu(self)
+        self.master.config(menu=self.menubar)
         
         # File menu
         self.file_menu = tk.Menu(self.menubar, tearoff=0)
-        self.file_menu.add_command(label="Upload file...", accelerator="Ctrl+U", command=self.open_file)
+        self.menubar.add_cascade(label="File", menu=self.file_menu)
+
+        # Open File submenu
+        self.open_file_menu = tk.Menu(self.file_menu, tearoff=0)
+        self.file_menu.add_cascade(label="Open File", menu=self.open_file_menu)
+        self.open_file_menu.add_command(label="Open CSV", command=lambda: self.open_specific_file("csv"))
+        self.open_file_menu.add_command(label="Open TIFF", command=lambda: self.open_specific_file("tiff"))
 
         # Open Recent menu
         self.open_recent_menu = tk.Menu(self.file_menu, tearoff=0)
         self.file_menu.add_cascade(label="Open Recent", menu=self.open_recent_menu)
 
-        self.file_menu.add_command(label="New Window", accelerator="Ctrl+N", command=self.new_window)
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Save", accelerator="Ctrl+S", command=self.save)
         self.file_menu.add_command(label="Save As...", accelerator="Ctrl+Shift+S", command=self.save_as)
         self.file_menu.add_command(label="Save All", accelerator="Ctrl+K", command=self.save_all)
         self.file_menu.add_separator()
-        self.file_menu.add_command(label="Close Window", accelerator="Alt+F4", command=self.close_window)
-        self.file_menu.add_separator()
-        self.file_menu.add_command(label="Exit", accelerator="Ctrl+E", command=self.quit)
-        self.menubar.add_cascade(label="File", menu=self.file_menu)
+        self.file_menu.add_command(label="Exit", accelerator="Ctrl+E", command=self.quit_software)
 
         # # Store the file_menu as an instance variable
         # self.file_menu = file_menu
@@ -162,9 +166,6 @@ class GUI(tk.Toplevel):
 
     def reset_context_for_segments_csv(self):
         self.image_viewer.reset_context_for_segments_csv()
-    
-    # def charge_data_from_csv(self):
-    #     self.data_viewer
 
     def bind_shortcuts(self):
         self.bind("<Control-U>", lambda event: self.open_file())
@@ -176,11 +177,21 @@ class GUI(tk.Toplevel):
         self.bind("<Control-E>", lambda event: self.quit())
         self.bind("<Control-R>", lambda event: self.open_recent_file(self.recent_files[0]) if self.recent_files else None)
         
-    def open_file(self):
-        file_path = filedialog.askopenfilename(filetypes=[("TIFF files", "*.tiff;*.tif")])
+    def open_specific_file(self, file_type):
+        file_extension = "*.csv" if file_type == "csv" else "*.tiff"
+        file_path = filedialog.askopenfilename(filetypes=[(f"{file_type.upper()} Files", file_extension)])
         if file_path:
-            self.image_viewer.load_image(file_path)
-            self.update_recent_files(file_path)
+            if file_type == "csv":
+                self.data_viewer.load_csv(file_path)
+            else:
+                self.clean_display_seg_data()
+                self.image_viewer.load_image(file_path)
+            with open(self.load_screen.identification_file_path, "w") as identification_file:
+                identification_file.write(f"\nPath-{self.load_screen.selected_file}")
+    
+    def clean_display_seg_data(self):
+        self.data_viewer.clean_seg_data()
+        self.image_viewer.clean_display_seg()
             
     def update_recent_files(self, file_path):
         # Update the list of recent files
@@ -248,10 +259,6 @@ class GUI(tk.Toplevel):
 
     def save_all(self):
         # Implement the logic for saving all
-        pass
-
-    def close_window(self):
-        # Implement the logic for closing the window
         pass
     
     def show_about(self):

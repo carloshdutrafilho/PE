@@ -87,13 +87,21 @@ class DataViewer(ttk.Frame):
         else:
             self.selected_ROI_index = max(self.ROI_data.keys()) + 1
 
+        # self.ROI_data[self.selected_ROI_index] = {
+        #     'coord': coordinates, 
+        #     'means': {
+        #         0: mean_values_green,
+        #         1: mean_values_red
+        #         }
+        #     }
+
         self.ROI_data[self.selected_ROI_index] = {
             'coord': coordinates, 
             'means': {
-            0: mean_values_green,
-            1: mean_values_red
-            }
-        }
+                0: [means_data[0], means_data[1]],
+                1: [means_data[0], means_data[2]]
+                }
+            }    
 
 
         self.total_pages[self.selected_ROI_index] = (len(self.ROI_data[self.selected_ROI_index]['means'][1]) / self.page_size) + 1 
@@ -109,6 +117,14 @@ class DataViewer(ttk.Frame):
         self.tree.heading('#1', text='Index')
         self.tree.heading('#2', text='Mean Intensity Green')
         self.tree.heading('#3', text='Mean Intensity Red') 
+
+    def clean_seg_data(self):
+        self.ROI_data = {}
+        self.data_tree_clean_rebuild()
+        self.selected_ROI_index = 0
+        self.current_page = {}
+        self.total_pages = {}
+        self.update_ROI_combobox()    
 
     def new_selection_display_data(self):
         self.data_tree_clean_rebuild()
@@ -130,8 +146,13 @@ class DataViewer(ttk.Frame):
         mean_intensities_green = mean_values_green[start_row:end_row]
         mean_intensities_red = mean_values_red[start_row:end_row]   
 
-        for i, (index, mean_intensity_green, mean_intensity_red) in enumerate(zip(range(start_row, end_row), mean_intensities_green, mean_intensities_red), start=start_row + 1):
-                self.tree.insert('', 'end', values=[index, round(mean_intensity_green, 2), round(mean_intensity_red, 2)])
+        # for i, (index, mean_intensity_green, mean_intensity_red) in enumerate(zip(range(start_row, end_row), mean_intensities_green, mean_intensities_red), start=start_row + 1):
+        #         self.tree.insert('', 'end', values=[index, round(mean_intensity_green, 2), round(mean_intensity_red, 2)])
+
+        for i, (index, mean_intensity_green, mean_intensity_red) in enumerate(zip(range(start_row, end_row), mean_intensities_green[1], mean_intensities_red[1]), start=start_row + 1):
+            self.tree.insert('', 'end', values=[index, round(mean_intensity_green, 2), round(mean_intensity_red, 2)])
+
+
 
     def save_as_csv(self):
         project_path = self.get_project_path()
@@ -151,9 +172,9 @@ class DataViewer(ttk.Frame):
 
         messagebox.showinfo("Save Successful", f"Data saved to project folder.")
 
-    def load_csv(self):
-        file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
-
+    def load_csv(self, file_path=None):
+        if not file_path:
+            file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
         if file_path:
             try:
                 with open(file_path, 'r') as csvfile:
@@ -186,7 +207,7 @@ class DataViewer(ttk.Frame):
                 means_green = eval(row[2])
                 means_red=eval(row[3])
                 
-                means = (list(range(1, len(means))), means[:-1])
+                means = (means_green, means_red)
 
                 next_index = 1
                 if len(self.ROI_data) != 0:

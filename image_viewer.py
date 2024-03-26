@@ -51,8 +51,6 @@ class ImageViewer(ttk.Frame):
         #Image array
         self.normalized_image_array = np.array([])
         self.selected_index = 0
-        
-        self.normalized_image_array_red = np.array([])
 
         # Placeholder image
         self.placeholder_image = Image.new("RGB", (400, 350), "lightgray")
@@ -249,7 +247,7 @@ class ImageViewer(ttk.Frame):
         self.image = None
         self.color_mode = 'gray'  # Initial color mode
         
-        self.sequence=imageio.volread(r'C:\Users\carlo\Downloads\transfer_6891262_files_d43c2e32\220728-S2_04_500mV.ome.tiff')
+        #self.sequence=imageio.volread(r'C:\Users\carlo\Downloads\transfer_6891262_files_d43c2e32\220728-S2_04_500mV.ome.tiff')
         self.reset_image()
         self.canaux = {}
 
@@ -291,7 +289,6 @@ class ImageViewer(ttk.Frame):
     def set_data_viewer(self, data_viewer):
         self.data_viewer = data_viewer
 
-
     def set_graph_viewer(self, graph_viewer):
         self.graph_viewer = graph_viewer
     def save_parameters(self):
@@ -306,167 +303,126 @@ class ImageViewer(ttk.Frame):
             self.canaux[1][self.normalized_image_array_red<self.threshold_min] = 0
             self.canaux[1][self.normalized_image_array_red>self.threshold_max] = 255
         self.save_button.config(relief=RAISED)
-            
 
-    # def load_image(self, image_path):
-    #     # Load and display image using Matplotlib
-    #     #self.original_image = Image.open(image_path)
-    #     self.original_image = tifffile.imread(image_path)
-    #     #print("Original Image:", self.original_image.shape)
-    #     image_width, image_height = self.original_image[0,0].shape
-    #     #image_width, image_height = self.original_image.size
-        
-    #     red_images = np.copy(self.original_image[1])
-    #     green_images = np.copy(self.original_image[0])
-        
-        
-
-        
-    #     # del self.original_image
-    #    # Placeholder image
-    #     self.placeholder_image = Image.new("RGB", (image_width, image_height), "lightgray")
-    #     self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
-   
-    # #     # Create a container for the image and parameters with the image dimensions
-    # #     # Create a container for the image and parameters with the image dimensions
-    #     self.image_container = tk.Frame(self, width=image_width, height=image_height)
-    # #     #self.image_container = ttk.Frame(self)
-    # #     #self.image_container = ttk.Frame(self)
-    #     self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True) 
-        
-    # #     # Convert the original image to a NumPy array
-    # #     #self.original_image_array = np.asarray(self.original_image)
-    # #     # print("Original Image Array:", self.original_image_array.shape)
-    # #     # print("Array size: ", len(self.original_image_array))
-    # #     # Convert the original image to a NumPy array
-    # #     #self.original_image_array = np.asarray(self.original_image)
-    # #     # print("Original Image Array:", self.original_image_array.shape)
-    # #     # print("Array size: ", len(self.original_image_array))
-
-
-    # #     # Normalize the pixel values to the range [0, 1]
-    # #     #min_value = np.min(self.original_image)
-    # #     #max_value = np.max(self.original_image)
-    # #     # #self.normalized_image_array = (self.original_image - min_value) / (max_value - min_value)
-    # #     # min_value_red = np.min(self.red_images)
-    # #     # max_value_red = np.max(self.red_images)
-    # #     # Normalize the pixel values to the range [0, 1]
-    # #     #min_value = np.min(self.original_image)
-    # #     #max_value = np.max(self.original_image)
-    # #     # #self.normalized_image_array = (self.original_image - min_value) / (max_value - min_value)
-    # #     # min_value_red = np.min(self.red_images)
-    # #     # max_value_red = np.max(self.red_images)
-        
-    #     min_value_red = np.percentile(red_images[0],0.1)
-    #     max_value_red = np.percentile(red_images[0],99.8)
-    # #     # self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
-    # #     # self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
-    #     self.normalized_image_array_red = (255*np.clip(red_images,min_value_red,max_value_red)/(max_value_red- min_value_red)).astype(np.uint8)
-        
-    #     del red_images
-    # #     # min_value_green = np.min(self.green_images)
-    # #     # max_value_green = np.max(self.green_images)
-    # #     # min_value_green = np.min(self.green_images)
-    # #     # max_value_green = np.max(self.green_images)
-    #     min_value_green = np.percentile(green_images[0],0.1)
-    #     max_value_green = np.percentile(green_images[0],99.8)
-    # #     # self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
-    # #     # self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
-    #     self.normalized_image_array_green = (255*np.clip(green_images,min_value_green,max_value_green)/(max_value_green- min_value_green)).astype(np.uint8)
-        
-    #     if np.mean(green_images[0])>2**15: #Si le fond de l'image est blanc, le convertir en noir
-    #         self.normalized_image_array_green = 255- self.normalized_image_array_green
-    #         self.normalized_image_array_red = 255- self.normalized_image_array_red
-    #         self.is_image_black = False
-    #     del green_images
-    #     self.canaux = {0: np.copy(self.normalized_image_array_green),
-    #                     1: np.copy(self.normalized_image_array_red)}
-        
-        
-    #     # Check the shape of the normalized image array
-    #     # if len(self.normalized_image_array_red.shape) == 2:
-    #     #     # If the array is 2D, keep it as is
-    #     #     self.image = self.normalized_image_array_red.copy()
-    #     # elif len(self.normalized_image_array_red.shape) == 3:
-    #     #     # If the array is 3D (RGB), convert it to grayscale
-    #     #     self.image = np.mean(self.normalized_image_array_red, axis=-1).copy()
-        
-    #     # Reshape the 3D array to 2D for display
-    #     #displayed_image = self.image.reshape(self.normalized_image_array.shape)
-
-    #     # # Check if the displayed image has the correct shape
-    #     # if displayed_image.shape[0] == 0 or displayed_image.shape[1] == 0:
-    #     #     # Handle the case where the displayed image has incorrect dimensions
-    #     #     print("Error: Incorrect dimensions after reshaping.")
-    #     #     return
-        
-    #     # self.axis.imshow(displayed_image, cmap='gray')  # Display the reshaped 2D image
-    #     # self.canvas.draw_idle()
-    #     # if self.selected_channel == 0:
-    #     #     self.image_display = self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
-    #     # if self.selected_channel == 1:
-    #     #     self.image_display = self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
-    #     self.image_display = self.axis.imshow(self.canaux[self.selected_channel][self.current_index], cmap=self.color_mode)
-    #     #self.axis.imshow(self.normalized_image_array, cmap='gray')  # Display the reshaped 2D image
-    #     #self.canvas.draw_idle()
-        
-    #     self.image_display = self.axis.imshow(self.normalized_image_array_red[self.current_index], cmap='gray')
-    #     # #self.image_display = self.axis.imshow(self.original_image)
-    #     # # Add a slider to scroll through images
-    #     # #self.image_display = self.axis.imshow(self.original_image)
-    #     # # Add a slider to scroll through images
-    #     ax_slider = self.figure.add_axes([0.2, 0.05, 0.65, 0.03])
-    #     self.slider = Slider(ax_slider, 'Image', 0, self.canaux[1].shape[0]-1, valinit=0)
-    #     print(self.canaux[1].shape[0])
-    #     self.slider.on_changed(self.update_image)
-
+    def clean_display_seg(self):
+        self.axis.clear()
+        self.ROI_objects = {}
+        self.ROI_index = 0
+        self.update_ROI_visibility_list()
+        self.show_tags_var.set(False)
 
     def load_image(self, image_path):
+
         # Load and display image using Matplotlib
-        self.original_image = Image.open(image_path)
-        image_width, image_height = self.original_image.size
+        #self.original_image = Image.open(image_path)
+        self.original_image = tifffile.imread(image_path)
+        #print("Original Image:", self.original_image.shape)
+        image_width, image_height = self.original_image[0,0].shape
+        #image_width, image_height = self.original_image.size
         
+        red_images = np.copy(self.original_image[1])
+        green_images = np.copy(self.original_image[0])
+        
+        
+
+        
+        # del self.original_image
        # Placeholder image
         self.placeholder_image = Image.new("RGB", (image_width, image_height), "lightgray")
         self.placeholder_photo = ImageTk.PhotoImage(self.placeholder_image)
-
-        # Create a container for the image and parameters with the image dimensions
+   
+    #     # Create a container for the image and parameters with the image dimensions
+    #     # Create a container for the image and parameters with the image dimensions
         self.image_container = tk.Frame(self, width=image_width, height=image_height)
+    #     #self.image_container = ttk.Frame(self)
+    #     #self.image_container = ttk.Frame(self)
         self.image_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True) 
+        
+    #     # Convert the original image to a NumPy array
+    #     #self.original_image_array = np.asarray(self.original_image)
+    #     # print("Original Image Array:", self.original_image_array.shape)
+    #     # print("Array size: ", len(self.original_image_array))
+    #     # Convert the original image to a NumPy array
+    #     #self.original_image_array = np.asarray(self.original_image)
+    #     # print("Original Image Array:", self.original_image_array.shape)
+    #     # print("Array size: ", len(self.original_image_array))
 
-        # Convert the original image to a NumPy array
-        self.original_image_array = np.array(self.original_image)
 
-        # Normalize the pixel values to the range [0, 1]
-        min_value = np.min(self.original_image_array)
-        max_value = np.max(self.original_image_array)
-        self.normalized_image_array = (self.original_image_array - min_value) / (max_value - min_value)
-
+    #     # Normalize the pixel values to the range [0, 1]
+    #     #min_value = np.min(self.original_image)
+    #     #max_value = np.max(self.original_image)
+    #     # #self.normalized_image_array = (self.original_image - min_value) / (max_value - min_value)
+    #     # min_value_red = np.min(self.red_images)
+    #     # max_value_red = np.max(self.red_images)
+    #     # Normalize the pixel values to the range [0, 1]
+    #     #min_value = np.min(self.original_image)
+    #     #max_value = np.max(self.original_image)
+    #     # #self.normalized_image_array = (self.original_image - min_value) / (max_value - min_value)
+    #     # min_value_red = np.min(self.red_images)
+    #     # max_value_red = np.max(self.red_images)
+        
+        min_value_red = np.percentile(red_images[0],0.1)
+        max_value_red = np.percentile(red_images[0],99.8)
+    #     # self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
+    #     # self.normalized_image_array_red = (self.red_images - min_value_red) / (max_value_red - min_value_red)
+        self.normalized_image_array_red = (255*np.clip(red_images,min_value_red,max_value_red)/(max_value_red- min_value_red)).astype(np.uint8)
+        
+        del red_images
+    #     # min_value_green = np.min(self.green_images)
+    #     # max_value_green = np.max(self.green_images)
+    #     # min_value_green = np.min(self.green_images)
+    #     # max_value_green = np.max(self.green_images)
+        min_value_green = np.percentile(green_images[0],0.1)
+        max_value_green = np.percentile(green_images[0],99.8)
+    #     # self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
+    #     # self.normalized_image_array_green = (self.green_images - min_value_green) / (max_value_green - min_value_green)
+        self.normalized_image_array_green = (255*np.clip(green_images,min_value_green,max_value_green)/(max_value_green- min_value_green)).astype(np.uint8)
+        
+        if np.mean(green_images[0])>2**15: #Si le fond de l'image est blanc, le convertir en noir
+            self.normalized_image_array_green = 255- self.normalized_image_array_green
+            self.normalized_image_array_red = 255- self.normalized_image_array_red
+            self.is_image_black = False
+        del green_images
+        self.canaux = {0: np.copy(self.normalized_image_array_green),
+                        1: np.copy(self.normalized_image_array_red)}
+        
+        
         # Check the shape of the normalized image array
-        if len(self.normalized_image_array.shape) == 2:
-            # If the array is 2D, keep it as is
-            self.image = self.normalized_image_array.copy()
-        elif len(self.normalized_image_array.shape) == 3:
-            # If the array is 3D (RGB), convert it to grayscale
-            self.image = np.mean(self.normalized_image_array, axis=-1).copy()
+        # if len(self.normalized_image_array_red.shape) == 2:
+        #     # If the array is 2D, keep it as is
+        #     self.image = self.normalized_image_array_red.copy()
+        # elif len(self.normalized_image_array_red.shape) == 3:
+        #     # If the array is 3D (RGB), convert it to grayscale
+        #     self.image = np.mean(self.normalized_image_array_red, axis=-1).copy()
         
         # Reshape the 3D array to 2D for display
-        displayed_image = self.image.reshape(self.image.shape[0], self.image.shape[1])
+        #displayed_image = self.image.reshape(self.normalized_image_array.shape)
 
-        # Check if the displayed image has the correct shape
-        if displayed_image.shape[0] == 0 or displayed_image.shape[1] == 0:
-            # Handle the case where the displayed image has incorrect dimensions
-            print("Error: Incorrect dimensions after reshaping.")
-            return
+        # # Check if the displayed image has the correct shape
+        # if displayed_image.shape[0] == 0 or displayed_image.shape[1] == 0:
+        #     # Handle the case where the displayed image has incorrect dimensions
+        #     print("Error: Incorrect dimensions after reshaping.")
+        #     return
         
-        self.axis.imshow(displayed_image, cmap='gray')  # Display the reshaped 2D image
-        self.update_displayed_image()
-        self.canvas.draw_idle()
-
-
+        # self.axis.imshow(displayed_image, cmap='gray')  # Display the reshaped 2D image
+        # self.canvas.draw_idle()
+        # if self.selected_channel == 0:
+        #     self.image_display = self.axis.imshow(self.canaux[0][self.current_index], cmap=self.color_mode)
+        # if self.selected_channel == 1:
+        #     self.image_display = self.axis.imshow(self.canaux[1][self.current_index], cmap=self.color_mode)
+        self.image_display = self.axis.imshow(self.canaux[self.selected_channel][self.current_index], cmap=self.color_mode)
+        #self.axis.imshow(self.normalized_image_array, cmap='gray')  # Display the reshaped 2D image
+        #self.canvas.draw_idle()
         
-        # Initialize images_for_temporal_averaging list with the first image
-        self.images_for_temporal_averaging = [self.normalized_image_array]
+        self.image_display = self.axis.imshow(self.normalized_image_array_red[self.current_index], cmap='gray')
+        # #self.image_display = self.axis.imshow(self.original_image)
+        # # Add a slider to scroll through images
+        # #self.image_display = self.axis.imshow(self.original_image)
+        # # Add a slider to scroll through images
+        ax_slider = self.figure.add_axes([0.2, 0.05, 0.65, 0.03])
+        self.slider = Slider(ax_slider, 'Image', 0, self.canaux[1].shape[0]-1, valinit=0)
+        print(self.canaux[1].shape[0])
+        self.slider.on_changed(self.update_image)
 
     def update_image(self,value = None):
         self.current_index = int(self.slider.val)
@@ -599,7 +555,6 @@ class ImageViewer(ttk.Frame):
     def update_window_size(self, val = None):
         # Get the window size for temporal averaging from the entry widget
         window_size = int(self.moyennage_entry.get())
-        print(window_size)
 
         # Check if the window size is valid
         #if window_size < 1 or window_size > len(self.image_paths):
@@ -625,7 +580,6 @@ class ImageViewer(ttk.Frame):
         for i in range(nb_images-self.window_size+1):
             self.normalized_image_array_green[i] = np.mean(self.normalized_image_array_green[i:i+self.window_size,:,:], axis = 0)
             self.normalized_image_array_red[i] = np.mean(self.normalized_image_array_red[i:i+self.window_size,:,:], axis = 0)
-        print('Temporal_avg')
         self.canaux = {0: np.copy(self.normalized_image_array_green),
                         1: np.copy(self.normalized_image_array_red)}
         # Perform temporal averaging
@@ -725,10 +679,12 @@ class ImageViewer(ttk.Frame):
             self.remove_all_tags()  # Masquer tous les tags si la case à cocher n'est pas cochée
         if self.show_tags_var.get():
             for index in dic.keys():  # Parcours de tous les indices dans le dictionnaire
-                coords=dic.get(index, {}).get('coord') 
-                liste_x=[x for x, y in coords]
-                liste_y=[y for x, y in coords]
-                self.display_tag(index,min(liste_x) ,min(liste_y))
+                if not self.tag_artists or index-1 >= len(self.tag_artists):
+                    coords=dic.get(index, {}).get('coord') 
+                    liste_x=[x for x, y in coords]
+                    liste_y=[y for x, y in coords]
+                    self.create_tag(index, min(liste_x), min(liste_y))
+                self.display_tag(index)
 
 
         # Rafraîchir l'affichage pour voir les modifications
@@ -1180,7 +1136,7 @@ class ImageViewer(ttk.Frame):
             #print("Nbr d'images :",(len(images[1])))# canal vert ou rouge, jsp
             # Initialiser une liste pour stocker les moyennes au fil du temps
             mean_values = [[],[]]
-            images = self.sequence
+            images = self.original_image
             f0_green=0
             f0_red=0
             # Parcourir toutes les images et calculer la moyenne des valeurs des pixels
@@ -1212,8 +1168,9 @@ class ImageViewer(ttk.Frame):
             return None
     
     def toggle_ROI_visibility(self, index, visibility):
-        # Toggle the visibility of a segment
         self.ROI_objects[index]['seg'][0].set_visible(visibility)
+        if self.show_tags_var.get():
+            self.display_tag(index+1)
         for points_list in self.ROI_objects[index]['points']:
             for point in points_list:
                 point.set_visible(visibility)
@@ -1228,9 +1185,15 @@ class ImageViewer(ttk.Frame):
     def update_ROI_visibility_list(self):
         self.GUI.update_ROI_visibility_list()
     
-    def display_tag(self, id, x, y):
+    def create_tag(self, id, x, y):
         tag_artist = self.axis.text(x, y, f"ROI {id}", color='white', fontsize=10, ha='center', va='center')
         self.tag_artists.append(tag_artist)
+    
+    def display_tag(self, id):
+        if not self.ROI_objects[id-1]['seg'][0].get_visible():
+            self.tag_artists[id-1].set_visible(False)
+        else:
+            self.tag_artists[id-1].set_visible(True)
 
     def remove_all_tags(self):
         for tag_artist in self.tag_artists:

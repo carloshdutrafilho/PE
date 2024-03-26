@@ -91,9 +91,11 @@ class GraphViewer(tk.Frame):
             for ROI_index, i in zip(selected_ROIs, liste):
                 if ROI_index in self.ROI_data:
 
-                    y_data_green = self.ROI_data[ROI_index]['means'][0]
-                    y_data_red=self.ROI_data[ROI_index]['means'][1]
-                    x_data = (list(range(0, len(y_data_green))))
+                    #y_data_green = self.ROI_data[ROI_index]['means'][0]
+                    y_data_green = self.ROI_data[ROI_index]['means'][0][1]
+                    y_data_red=self.ROI_data[ROI_index]['means'][1][1]
+                    #x_data = (list(range(0, len(y_data_green))))
+                    x_data = self.ROI_data[ROI_index]['means'][0][0]
                     x_data = [float(x) for x in x_data if isinstance(x, (int, float))]
                     y_data_green = [float(y) for y in y_data_green if isinstance(y, (int, float))]
                     y_data_red = [float(y) for y in y_data_red if isinstance(y, (int, float))]
@@ -197,10 +199,11 @@ class GraphViewer(tk.Frame):
 
         try:
  
-            y_data = self.ROI_data[self.selected_ROI_index]['means'][channel]
-            x_data=list(range(0, len(y_data)))
-            x_data = [float(x) for x in x_data if isinstance(x, (int, float))]
-            y_data = [float(y) for y in y_data if isinstance(y, (int, float))]
+            y_data = self.ROI_data[self.selected_ROI_index]['means'][channel][1]
+            #x_data=list(range(0, len(y_data)))
+            x_data = self.ROI_data[self.selected_ROI_index]['means'][channel][0]
+            x_data = [float(x) for x in x_data]
+            y_data = [float(y) for y in y_data]
 
             #self.axis.clear()
 

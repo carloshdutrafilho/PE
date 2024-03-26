@@ -34,6 +34,8 @@ MedicAnalysis is an medical imaging analysis tool developed to assist researcher
 - **Image display**: Located in the center of the screen, it contains the display of the selected .tiff file, allowing the user to edit brightness, contrast, temporal mediation, select the frame using the image slider, use the mouse function as a hand to move the image and zoom-in and zoom-out, as well as the segmentation function which will be dealt with separately.
 - **Data display**: Located on the top right-hand side of the screen, this is where you can browse the segmentation data, going through the pages covering all the frames of the loaded image, with the possibility of importing/exporting data from .csv files for analysis in the software.
 - **Graph display**: Located on the lower right-hand side of the screen, this is where the graphs plotted with the data obtained from the user's segmentation are displayed. Using the same selection tool as for the Data display, you can select to display the graph and data for the ROI you want to analyze at any given time, as well as the graph comparison mechanism, where you can plot multiple ROIs simultaneously.
+- **Segmentation**: The "Start segmentation" button starts segmentation, so future clicks are used to circle a ROI. At the end of the selection of points surrounding the ROI, the user can stop the segmentation with the dedicated "Stop segmentation" button. Red and green channel graphs are displayed directly in the graph viewer window. To view the graphs of another ROI, use the drop-down menu in the data viewer window.
+
 
 
 

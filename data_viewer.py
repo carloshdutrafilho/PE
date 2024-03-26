@@ -21,14 +21,14 @@ class DataViewer(ttk.Frame):
         tree_frame = ttk.Frame(self)
         tree_frame.pack(side=tk.TOP, padx=10, pady=10)
 
-        self.tree = ttk.Treeview(tree_frame, columns=('Index', 'Mean Intensity Green','Mean Intensity Red'), show='headings', selectmode='browse')
+        self.tree = ttk.Treeview(tree_frame, columns=('Index', 'Means Green','Means Red'), show='headings', selectmode='browse')
         self.tree.heading('#1', text='Index')
         self.tree.column('#1', width=50)  
 
-        self.tree.heading('#2', text='Mean Intensity Green')
+        self.tree.heading('#2', text='Means Green')
         self.tree.column('#2', width=100)  
 
-        self.tree.heading('#3', text='Mean Intensity Red')
+        self.tree.heading('#3', text='Means Red')
         self.tree.column('#3', width=100)  
         self.tree.pack(side=tk.LEFT)
 
@@ -115,8 +115,8 @@ class DataViewer(ttk.Frame):
     def data_tree_clean_rebuild(self):
         self.tree.delete(*self.tree.get_children())
         self.tree.heading('#1', text='Index')
-        self.tree.heading('#2', text='Mean Intensity Green')
-        self.tree.heading('#3', text='Mean Intensity Red') 
+        self.tree.heading('#2', text='Means Green')
+        self.tree.heading('#3', text='Means Red') 
 
     def clean_seg_data(self):
         self.ROI_data = {}
@@ -215,14 +215,14 @@ class DataViewer(ttk.Frame):
 
                 mean_values_green = means[0]
                 mean_values_red = means[1]
-                means_green = (list(range(1, len(mean_values_green))), mean_values_green[:-1])
-                means_red = (list(range(1, len(mean_values_red))), mean_values_red[:-1])
+                #means_green = (list(range(1, len(mean_values_green))), mean_values_green[:-1])
+                #means_red = (list(range(1, len(mean_values_red))), mean_values_red[:-1])
 
                 self.ROI_data[next_index] = {
                 'coord': coord,
                 'means': {
-                    0: means_green,  # Canal vert
-                    1: means_red     # Canal rouge
+                    0: mean_values_green,  # Canal vert
+                    1: mean_values_red     # Canal rouge
                 }
                 }
                 self.GUI.draw_segments_from_csv(coord)

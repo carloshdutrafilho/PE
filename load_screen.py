@@ -89,27 +89,27 @@ class LoadScreen(Frame):
             image_directory = os.path.dirname(self.selected_file)
             image_name = self.selected_file
 
-            project_name = self.entry_project_name.get()
+            self.project_name = self.entry_project_name.get()
 
             default_directory = "C:/MedicAnalysis/Projects"
             if not os.path.exists(default_directory):
                 os.makedirs(default_directory)
         
-            self.project_path = os.path.join(default_directory, project_name)
+            self.project_path = os.path.join(default_directory, self.project_name)
 
             while os.path.exists(self.project_path):
-                if not project_name:
+                if not self.project_name:
                     new_project_name = askstring("Invalid Project Name", f"The project needs a name. Please enter a new name: ")
                 else:
-                    new_project_name = askstring("Invalid Project Name", f"A project with the name '{project_name}' already exists. Please enter a new name:")
-                project_name = new_project_name
-                self.project_path = os.path.join(default_directory, project_name)
+                    new_project_name = askstring("Invalid Project Name", f"A project with the name '{self.project_name}' already exists. Please enter a new name:")
+                self.project_name = new_project_name
+                self.project_path = os.path.join(default_directory, self.project_name)
 
             os.makedirs(self.project_path)
 
             self.identification_file_path = os.path.join(self.project_path, "identification.txt")
             with open(self.identification_file_path, "w") as identification_file:
-                identification_file.write(f"Project: {project_name}")
+                identification_file.write(f"Project: {self.project_name}")
                 identification_file.write(f"\nPath-{file_path}")
 
             print(f"Project folder created: {self.project_path}")
@@ -131,16 +131,15 @@ class LoadScreen(Frame):
 
             if os.path.exists(identification_file_path):
                 with open(identification_file_path, "r") as identification_file:
-                    # Ler informações do arquivo de identificação linha a linha
-                    project_name_line = identification_file.readline().strip()
-                    path_line = identification_file.readline().strip()
+                    if (identification_file.readline().strip() == ""): 
+                        project_name_line = identification_file.readline().strip()
+                        path_line = identification_file.readline().strip()
 
-                    # Validar o formato do arquivo de identificação
                     if not project_name_line.startswith("Project:"):
                         messagebox.showwarning("Warning", "Invalid format in identification file.")
                         return
 
-                    project_name = project_name_line.split(":", 1)[1].strip()
+                    self.project_name = project_name_line.split(":", 1)[1].strip()
 
                     if not path_line.startswith("Path-"):
                         messagebox.showwarning("Warning", "Invalid format in identification file.")
@@ -148,7 +147,7 @@ class LoadScreen(Frame):
 
                     image_path = path_line.split("-", 1)[1].strip()
 
-                print(f"Loaded project: {project_name}")
+                print(f"Loaded project: {self.project_name}")
                 self.project_path = selected_directory
                 self.selected_file = image_path
                 print(f"Image path: {image_path}")
@@ -157,6 +156,10 @@ class LoadScreen(Frame):
                 self.app.enable_functionalities_post_load()
                 #self.app.charge_data_from_csv()
                 self.image_viewer.load_image(image_path)
+
+                csv_path = os.path.join(selected_directory, "data_viewer_setup.csv")
+                if os.path.exists(csv_path):
+                    self.app.data_viewer.load_csv(csv_path)
             else:
                 messagebox.showwarning("Warning", "Selected folder does not contain a valid identification file.")
         else:

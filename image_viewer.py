@@ -1077,13 +1077,13 @@ class ImageViewer(ttk.Frame):
 
         # Create a data structure with relevant information
         segment_data = {
-        'segment_x_array': segment_x_array,
-        'segment_y_array': segment_y_array,
-        'mean_values': 
-        {
-        0: mean_values[0],
-        1: mean_values[1],
-        }
+            'segment_x_array': segment_x_array,
+            'segment_y_array': segment_y_array,
+            'mean_values': 
+                        {
+                        0: mean_values[0],
+                        1: mean_values[1],
+                    }
         }
 
         self.listes_graphs.append((segment_data['mean_values'][0]))#ajout canal vert

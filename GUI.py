@@ -21,44 +21,44 @@ class GUI(tk.Toplevel):
         self.image_viewer = None
         
         # Container for File Explorer, Image Viewer, and Data/Graph Viewers
-        main_container = tk.PanedWindow(self, orient=tk.HORIZONTAL, sashwidth=5, sashrelief=tk.SUNKEN)
-        main_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        
-        self.msg = tk.Label(main_container, text="Main Screen")
+        self.main_container = tk.PanedWindow(self, orient=tk.HORIZONTAL, sashwidth=5, sashrelief=tk.SUNKEN)
+        self.main_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+    
+        self.msg = tk.Label( self.main_container, text="Main Screen")
         self.msg["font"] = ("Verdana", "12", "bold")
         #self.msg.pack()
-        #main_container.add(self.msg, minsize=100)  # Set minimum size
+        # self.main_container.add(self.msg, minsize=100)  # Set minimum ize
 
         # Project path
         self.project_path = None
         
         # File Explorer
-        file_explorer_frame = FileViewer(main_container, image_viewer=self.image_viewer)
-        #file_explorer_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=False)
-        main_container.add(file_explorer_frame, minsize=100)  # Set minimum size
-        
+        file_explorer_frame = FileViewer( self.main_container, image_viewer=self.image_viewer)
+        #file_explorer_frame.pack(side=tk.EFT, fill=tk.BOTH, expand=False)
+        self.main_container.add(file_explorer_frame, minsize=100)  # Set minimum size
+    
         #Image Viewer
-        self.image_viewer = ImageViewer(main_container,self)
-        #self.image_viewer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        main_container.add(self.image_viewer, minsize=200)  # Set minimum size
+        self.image_viewer = ImageViewer( self.main_container,self)
+        #self.image_viewer.pack(side=tk.LFT, fill=tk.BOTH, expand=True)
+        self.main_container.add(self.image_viewer, minsize=200)  # Set minimum size
         self.image_viewer.disable_functionalities_pre_load()
 
         # Data and Graph Viewers
-        data_graph_frame = tk.PanedWindow(main_container, orient=tk.VERTICAL, sashwidth=8, sashrelief=tk.SUNKEN)
-        main_container.add(data_graph_frame, minsize=200)  # Set minimum size
+        self.data_graph_frame = tk.PanedWindow( self.main_container, orient=tk.VERTICAL, sashwidth=8, sashrelief=tk.SUNKEN)
+        self.main_container.add(self.data_graph_frame, minsize=200)  # Set minimum ize
 
         # Data Viewer
-        self.data_viewer = DataViewer(data_graph_frame, self)
+        self.data_viewer = DataViewer(self.data_graph_frame, self)
         self.image_viewer.set_data_viewer(self.data_viewer)
-        data_graph_frame.add(self.data_viewer, minsize=200)  # Set minimum size
+        self.data_graph_frame.add(self.data_viewer, minsize=200)  # Set minimum size
         self.data_viewer.disable_functionalities_pre_load()
 
         # Graph Viewer
-        self.graph_viewer = GraphViewer(data_graph_frame)
+        self.graph_viewer = GraphViewer(self.data_graph_frame)
         self.graph_viewer.disable_functionalities_pre_load()
         self.image_viewer.set_graph_viewer(self.graph_viewer)
         self.data_viewer.set_graph_viewer(self.graph_viewer)
-        data_graph_frame.add(self.graph_viewer, minsize=200)  # Set minimum size
+        self.data_graph_frame.add(self.graph_viewer, minsize=200)  # Set minimum size
         
         self.load_screen = LoadScreen(self.master, app=self, image_viewer=self.image_viewer)
         
@@ -81,8 +81,6 @@ class GUI(tk.Toplevel):
         self.file_menu.add_cascade(label="Open Recent", menu=self.open_recent_menu)
 
         self.file_menu.add_separator()
-        self.file_menu.add_command(label="Save", accelerator="Ctrl+S", command=self.save)
-        self.file_menu.add_command(label="Save As...", accelerator="Ctrl+Shift+S", command=self.save_as)
         self.file_menu.add_command(label="Save All", accelerator="Ctrl+K", command=self.save_all)
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Exit", accelerator="Ctrl+E", command=self.quit_software)
@@ -95,10 +93,21 @@ class GUI(tk.Toplevel):
         self.menubar.add_cascade(label="Edit", menu=self.edit_menu)
         
         # Preferences menu
-        self.preferences_menu = tk.Menu(self.menubar, tearoff=0)
-        self.preferences_menu.add_command(label="Mode", command=self.show_preferences)
-        self.menubar.add_cascade(label="Preferences", menu=self.preferences_menu)
-        
+        # self.preferences_menu = tk.Menu(self.menubar, tearoff=0)
+        # self.preferences_menu.add_command(label="Mode", command=self.show_preferences)
+        # self.menubar.add_cascade(label="Preferences", menu=self.preferences_menu)
+            
+        # Adicione o menu "View"
+        self.view_menu = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="View", menu=self.view_menu)
+
+        # Adicione uma subopção para segmentações ROI
+        self.roi_menu = tk.Menu(self.view_menu, tearoff=0)
+        self.view_menu.add_cascade(label="ROI Segmentations", menu=self.roi_menu)
+
+        # Adicione itens de menu para cada segmentação ROI
+        self.roi_visibility_vars = []  # Variáveis para rastrear a visibilidade de cada ROI
+
         # Help menu
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
         self.help_menu.add_command(label="About", command=self.show_about)
@@ -116,17 +125,6 @@ class GUI(tk.Toplevel):
         # List to store recently used files
         self.recent_files = [] 
         self.protocol("WM_DELETE_WINDOW", self.quit_software)
-    
-            # Adicione o menu "View"
-        self.view_menu = tk.Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="View", menu=self.view_menu)
-
-        # Adicione uma subopção para segmentações ROI
-        self.roi_menu = tk.Menu(self.view_menu, tearoff=0)
-        self.view_menu.add_cascade(label="ROI Segmentations", menu=self.roi_menu)
-
-        # Adicione itens de menu para cada segmentação ROI
-        self.roi_visibility_vars = []  # Variáveis para rastrear a visibilidade de cada ROI
     
     def update_ROI_visibility_list(self):
         self.roi_visibility_vars.clear()
@@ -220,50 +218,43 @@ class GUI(tk.Toplevel):
             
     def open_recent_file(self, file_path):
         self.image_viewer.load_image(file_path)
+        self.load_screen.selected_file = file_path
         self.update_recent_files(file_path)
     
     
-    def show_preferences(self):
-        # Create a preferences dialog with a night mode toggle
-        preferences_dialog = tk.Toplevel(self)
-        preferences_dialog.title("Mode")
+    # def show_preferences(self):
+    #     # Create a preferences dialog with a night mode toggle
+    #     preferences_dialog = tk.Toplevel(self)
+    #     preferences_dialog.title("Mode")
 
-        night_mode_checkbox = tk.Checkbutton(preferences_dialog, text="Night Mode",
-                                             variable=self.night_mode, command=self.toggle_night_mode)
-        night_mode_checkbox.pack(padx=10, pady=10)
+    #     night_mode_checkbox = tk.Checkbutton(preferences_dialog, text="Night Mode",
+    #                                          variable=self.night_mode, command=self.toggle_night_mode)
+    #     night_mode_checkbox.pack(padx=10, pady=10)
 
-    def toggle_night_mode(self):
-        # Toggle night mode
-        if self.night_mode.get():
-            self.configure(bg='black')
-            self.image_viewer.configure(bg='black')
-            self.data_viewer.configure(bg='black')
-            self.graph_frame.configure(bg='black')
-        else:
-            self.configure(bg='white')
-            self.image_viewer.configure(bg='white')
-            self.data_viewer.configure(bg='white')
-            self.graph_frame.configure(bg='white')
-
-    def new_window(self):
-        # Implement the logic for opening a new window
-        pass
-
-    def save(self):
-        # Implement the logic for saving
-        pass
-
-    def save_as(self):
-        # Implement the logic for save as
-        pass
+    # def toggle_night_mode(self):
+    #     # Toggle night mode
+    #     if self.night_mode.get():
+    #         self.configure(bg='black')
+    #         #self.image_viewer.configure(bg='black')
+    #         self.main_container.configure(bg='black')
+    #         #self.data_viewer.configure(bg='black')
+    #         self.data_graph_frame.configure(bg='black')
+    #     else:
+    #         self.configure(bg='white')
+    #         self.image_viewer.configure(bg='white')
+    #         self.data_viewer.configure(bg='white')
+    #         self.data_graph_frame.configure(bg='white')
 
     def save_all(self):
-        # Implement the logic for saving all
-        pass
+        if self.data_viewer.ROI_data:
+            self.data_viewer.save_as_csv()
+        with open(self.load_screen.identification_file_path, "w") as identification_file:
+            identification_file.write(f"\nProject: {self.load_screen.project_name}")
+            identification_file.write(f"\nPath-{self.load_screen.selected_file}")
     
     def show_about(self):
         about_info = (
-            "Image Analysis Interface\n\n"
+            "MedicAnalysis\n\n"
             "Author: Aya, Carlos, Marc, Tom\n"
             "Version: 1.0\n"
             f"Date: {datetime.date.today()}\n"

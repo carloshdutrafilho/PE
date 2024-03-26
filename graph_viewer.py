@@ -163,8 +163,6 @@ class GraphViewer(tk.Frame):
         self.selected_ROI_index = ROI_index
         display_red = self.display_red_var.get()
         display_green = self.display_green_var.get()
-        print('display green : ',display_green)
-        print('display red : ',display_red)
         if self.axis !=None :
             self.axis.clear()
             self.canvas.draw()

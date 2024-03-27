@@ -36,6 +36,6 @@ MedicAnalysis is an medical imaging analysis tool developed to assist researcher
 - **Graph display**: Located on the lower right-hand side of the screen, this is where the graphs plotted with the data obtained from the user's segmentation are displayed. Using the same selection tool as for the Data display, you can select to display the graph and data for the ROI you want to analyze at any given time, as well as the graph comparison mechanism, where you can plot multiple ROIs simultaneously.
 - **Segmentation**: The "Start segmentation" button starts segmentation, so future clicks are used to circle a ROI. At the end of the selection of points surrounding the ROI, the user can stop the segmentation with the dedicated "Stop segmentation" button. Red and green channel graphs are displayed directly in the graph viewer window. To view the graphs of another ROI, use the drop-down menu in the data viewer window.
 
-
+### .exe WARNING: If you have the .exe file for the MedicAnalysis software, *run it in a folder with the images included in this repo (zoom-in.png; zoom-out.png; segmentation.png)*.
 
 
